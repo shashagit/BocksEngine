@@ -16,6 +16,6 @@ void CollisionManager::Reset()
 	for (auto contact : mContacts) {
 		delete contact;
 	}
-
+	
 	mContacts.clear();
 }

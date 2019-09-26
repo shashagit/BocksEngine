@@ -35,6 +35,24 @@ struct ContactManifold {
 	Body *bodyA, *bodyB;
 
 	glm::vec3 collisionNormal;
+
+	ContactManifold()
+	{}
+	
+	ContactManifold(ContactManifold& cm)
+	{
+		bodyA = cm.bodyA;
+		bodyB = cm.bodyB;
+
+		collisionNormal = cm.collisionNormal;
+		
+		for(auto cp : cm.contactPoints)
+		{
+			Contact* c = new Contact();
+			c = cp;
+			contactPoints.push_back(c);
+		}
+	}
 };
 
 
@@ -45,7 +63,8 @@ public:
 	~CollisionManager();
 	
 	std::list<ContactManifold*> mContacts;
-
+	std::list<ContactManifold*> mPrevContacts;
+	
 	void Reset();
 
 };

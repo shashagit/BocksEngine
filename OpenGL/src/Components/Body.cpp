@@ -45,6 +45,11 @@ void Body::Serialize(GenericObject<false, Value::ValueType> d)
 		mInvMass = 0.0f;
 	}
 
+	if (mMass == 2.0f) {
+		mInvMass = 0.0f;
+		mMass = std::numeric_limits<float>::max();
+	}
+
 	if (d.HasMember("Velocity")) {
 		mVel.x = d["Velocity"]["x"].GetFloat();
 		mVel.y = d["Velocity"]["y"].GetFloat();
@@ -75,12 +80,18 @@ void Body::Initialize()
 
 	//mAngularVel.x = 0.1f;
 	//mAngularVel.y = 0.1f;
-
-	// setup body inertia tensor (only for AABB)
 	glm::mat3 inertia = glm::mat3(0.0f);
-	inertia[0][0] = mMass / 12.0f * (pTr->mScale.y * pTr->mScale.y + pTr->mScale.z * pTr->mScale.z);
-	inertia[1][1] = mMass / 12.0f * (pTr->mScale.x * pTr->mScale.x + pTr->mScale.z * pTr->mScale.z);
-	inertia[2][2] = mMass / 12.0f * (pTr->mScale.y * pTr->mScale.y + pTr->mScale.x * pTr->mScale.x);
+	if (mMass < 1.9f) {
+		// setup body inertia tensor (only for AABB)
+		inertia[0][0] = mMass / 12.0f * (pTr->mScale.y * pTr->mScale.y + pTr->mScale.z * pTr->mScale.z);
+		inertia[1][1] = mMass / 12.0f * (pTr->mScale.x * pTr->mScale.x + pTr->mScale.z * pTr->mScale.z);
+		inertia[2][2] = mMass / 12.0f * (pTr->mScale.y * pTr->mScale.y + pTr->mScale.x * pTr->mScale.x);
+	} else
+	{
+		inertia[0][0] = inertia[1][1] = inertia[2][2] = mMass;
+		mInertiaBodyInverse = glm::mat3(0.0f);
+		return;
+	}
 
 	mInertiaBodyInverse = glm::inverse(inertia);
 }

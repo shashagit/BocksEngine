@@ -88,13 +88,6 @@ void PhysicsSystem::Update(float _deltaTime) {
 		if (pBody->mInvMass == 0.0f)
 			continue;
 
-		// hack to make the floor stationary
-		if (pBody->mMass >= 1.9f) {
-			pBody->mVel = glm::vec3(0.0f, 0.0f, 0.0f);
-			pBody->mAngularVel = glm::vec3(0.0f, 0.0f, 0.0f);
-			continue;
-		}
-
 		// compute acceleration
 		glm::vec3 acc = pBody->mTotalForce * pBody->mInvMass;
 		acc += gravity;
@@ -111,8 +104,51 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 	// small slop
 	float slop = -0.005f;
-	float mu = 0.1f;
+	float mu = 0.2f;
+	bool isWarmStarting = true;
+	//==== warm starting
+	if (isWarmStarting) {
+		if (!colMan->mPrevContacts.empty() && !colMan->mContacts.empty())
+		{
+			const float bias = 1.0f;
+			auto itNew = colMan->mContacts.begin();
+			auto itOld = colMan->mPrevContacts.begin();
+			for (; itOld != colMan->mPrevContacts.end(); ++itOld)
+			{
+				for (; itNew != colMan->mContacts.end(); ++itNew)
+				{
+					if (((*itNew)->bodyA == (*itOld)->bodyA &&
+						(*itNew)->bodyB == (*itOld)->bodyB) ||
+						((*itNew)->bodyA == (*itOld)->bodyB &&
+						(*itNew)->bodyB == (*itOld)->bodyA)) {
 
+						int size = (*itOld)->contactPoints.size() < (*itNew)->contactPoints.size() ?
+							(*itOld)->contactPoints.size() : (*itNew)->contactPoints.size();
+
+						// iterate through contact points
+						for (unsigned j = 0; j < size; ++j)
+						{
+							Contact* cNew = (*itNew)->contactPoints[j];
+
+							for (unsigned k = 0; k < size; ++k) {
+								Contact* cOld = (*itOld)->contactPoints[k];
+
+								if (glm::length2(cNew->rA - cOld->rA) < 0.01f)
+								{
+									cNew->normalImpulseSum = cOld->normalImpulseSum * bias;
+									cNew->tangentImpulseSum1 = cOld->tangentImpulseSum1 * bias;
+									cNew->tangentImpulseSum2 = cOld->tangentImpulseSum2 * bias;
+								}
+							}
+
+						}
+
+					}
+				}
+			}
+		}
+	}
+	
 	//==== solve constraints
 	for (int i = 0; i < impulseIterations; ++i) {
 		for (auto c : colMan->mContacts) {
@@ -154,6 +190,8 @@ void PhysicsSystem::Update(float _deltaTime) {
 				c->bodyB->mAngularVel += glm::vec3(deltaV(9, 0), deltaV(10, 0), deltaV(11, 0));
 
 				if (applyFriction) {
+					float nLambda = c->contactPoints[j]->normalImpulseSum;
+					
 					// calculate tangents (Erin Catto's code)
 					glm::vec3 t0, t1;
 
@@ -174,7 +212,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 					c->contactPoints[j]->tangentImpulseSum1 += lambda;
 					c->contactPoints[j]->tangentImpulseSum1 =
-						glm::clamp(c->contactPoints[j]->tangentImpulseSum1, -mu * 9.8f / pointCount, mu * 9.8f / pointCount);
+						glm::clamp(c->contactPoints[j]->tangentImpulseSum1, -mu * nLambda, mu * nLambda);
 
 					deltaLambda = c->contactPoints[j]->tangentImpulseSum1 - origTangent0ImpulseSum;
 
@@ -196,7 +234,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 					c->contactPoints[j]->tangentImpulseSum2 += lambda;
 					c->contactPoints[j]->tangentImpulseSum2 =
-						glm::clamp(c->contactPoints[j]->tangentImpulseSum2, -mu * 9.8f / pointCount, mu * 9.8f / pointCount);
+						glm::clamp(c->contactPoints[j]->tangentImpulseSum2, -mu * nLambda, mu * nLambda);
 
 					deltaLambda = c->contactPoints[j]->tangentImpulseSum2 - origTangent1ImpulseSum;
 
@@ -212,6 +250,15 @@ void PhysicsSystem::Update(float _deltaTime) {
 		}
 	}
 
+	// Copy contacts into previous list
+	for (auto contact : colMan->mPrevContacts) {
+		delete contact;
+	}
+	colMan->mPrevContacts.clear();
+	for (auto cm : colMan->mContacts) {
+		ContactManifold* conMan = new ContactManifold(*cm);
+		colMan->mPrevContacts.push_back(conMan);
+	}
 
 	//==== integrate velocity and angular velocity
 	for (auto go : gpGoManager->mGameObjects)
@@ -220,15 +267,6 @@ void PhysicsSystem::Update(float _deltaTime) {
 		// save current position
 		pBody->mPrevPos = pBody->mPos;
 
-		if (pBody->mInvMass == 0.0f)
-			continue;
-
-		// hack to keep the floor stationary
-		if (pBody->mMass >= 1.9f) {
-			pBody->mVel = glm::vec3(0.0f, 0.0f, 0.0f);
-			pBody->mAngularVel = glm::vec3(0.0f, 0.0f, 0.0f);
-			continue;
-		}
 		// integrate the position
 		pBody->mPos += pBody->mVel * _deltaTime;
 		// integrate the orientation
