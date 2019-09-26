@@ -1,0 +1,22 @@
+{
+  "Cube": {
+    "Transform" : {
+		"Position" : { "x" : 2.0, "y" : 2.0, "z" : 0.0}
+	}
+  },
+  "Cube": {
+    "Transform" : {
+		"Position" : { "x" : 6.0, "y" : 2.0, "z" : 0.0}
+	}
+  },
+  "Cube": {
+    "Transform" : {
+		"Position" : { "x" : 4.0, "y" : 5.0, "z" : 0.0}
+	}
+  },
+  "Cube": {
+    "Transform" : {
+		"Position" : { "x" : 8.0, "y" : 5.0, "z" : 0.0}
+	}
+  }
+}

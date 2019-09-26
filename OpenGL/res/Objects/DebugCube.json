@@ -1,0 +1,8 @@
+{
+  "Transform" : {
+		"Position" : { "x" : 0.0, "y" : 0.0, "z" : 0.0},
+		"Scale" : { "x" : 0.1,"y" : 0.1 , "z" : 0.1},
+		"Angle" : { "x" : 0.0,"y" : 0.0 , "z" : 0.0}
+	},
+	"Mesh" : { "TexturePath" : "square.png" }
+}
