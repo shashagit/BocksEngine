@@ -21,5 +21,7 @@ public:
 
 	void EvaluateVelocityVector(const ContactManifold& contact);
 
+	void ApplyImpulse(const ContactManifold& contact, float impulse);
+
 };
 

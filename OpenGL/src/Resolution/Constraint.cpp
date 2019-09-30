@@ -81,3 +81,15 @@ void Constraint::EvaluateVelocityVector(const ContactManifold & contact)
 	velocityMatrix(10, 0) = contact.bodyB->mAngularVel.y;
 	velocityMatrix(11, 0) = contact.bodyB->mAngularVel.z;
 }
+
+void Constraint::ApplyImpulse(const ContactManifold& c, float impulse)
+{
+	Eigen::Matrix<float, 12, 1> deltaV =
+		massMatrixInverse * jacobian.transpose() * impulse;
+
+	c.bodyA->mVel += glm::vec3(deltaV(0, 0), deltaV(1, 0), deltaV(2, 0));
+	c.bodyA->mAngularVel += glm::vec3(deltaV(3, 0), deltaV(4, 0), deltaV(5, 0));
+
+	c.bodyB->mVel += glm::vec3(deltaV(6, 0), deltaV(7, 0), deltaV(8, 0));
+	c.bodyB->mAngularVel += glm::vec3(deltaV(9, 0), deltaV(10, 0), deltaV(11, 0));
+}

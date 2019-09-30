@@ -138,6 +138,31 @@ void PhysicsSystem::Update(float _deltaTime) {
 									cNew->normalImpulseSum = cOld->normalImpulseSum * bias;
 									cNew->tangentImpulseSum1 = cOld->tangentImpulseSum1 * bias;
 									cNew->tangentImpulseSum2 = cOld->tangentImpulseSum2 * bias;
+
+									// apply old impulse as warm start
+									Constraint c;
+									c.CalculateMassMatrixInv(*(*itNew));
+
+									c.EvaluateJacobian(*(*itNew), (*itNew)->collisionNormal, j);
+
+									c.ApplyImpulse(*(*itNew), cNew->normalImpulseSum);
+									
+									// calculate tangents (Erin Catto's code)
+									glm::vec3 t0, t1;
+
+									if (abs((*itNew)->collisionNormal.x) >= 0.57735f)
+										t0 = glm::normalize(glm::vec3((*itNew)->collisionNormal.y, -(*itNew)->collisionNormal.x, 0.0f));
+									else
+										t0 = glm::normalize(glm::vec3(0.0f, (*itNew)->collisionNormal.z, -(*itNew)->collisionNormal.y));
+									t1 = glm::cross((*itNew)->collisionNormal, t0);
+
+									c.EvaluateJacobian(*(*itNew), t0, j);
+
+									c.ApplyImpulse(*(*itNew), cNew->tangentImpulseSum1);
+
+									c.EvaluateJacobian(*(*itNew), t1, j);
+
+									c.ApplyImpulse(*(*itNew), cNew->tangentImpulseSum2);
 								}
 							}
 
@@ -180,17 +205,11 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 				float deltaLambda = c->contactPoints[j]->normalImpulseSum - origNormalImpulseSum;
 
-				Eigen::Matrix<float, 12, 1> deltaV =
-					constraint.massMatrixInverse * constraint.jacobian.transpose() * deltaLambda;
-
-				c->bodyA->mVel += glm::vec3(deltaV(0, 0), deltaV(1, 0), deltaV(2, 0));
-				c->bodyA->mAngularVel += glm::vec3(deltaV(3, 0), deltaV(4, 0), deltaV(5, 0));
-
-				c->bodyB->mVel += glm::vec3(deltaV(6, 0), deltaV(7, 0), deltaV(8, 0));
-				c->bodyB->mAngularVel += glm::vec3(deltaV(9, 0), deltaV(10, 0), deltaV(11, 0));
+				constraint.ApplyImpulse(*c ,deltaLambda);
 
 				if (applyFriction) {
 					float nLambda = c->contactPoints[j]->normalImpulseSum;
+					//float nLambda = 9.8f / pointCount;
 					
 					// calculate tangents (Erin Catto's code)
 					glm::vec3 t0, t1;
@@ -216,13 +235,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 					deltaLambda = c->contactPoints[j]->tangentImpulseSum1 - origTangent0ImpulseSum;
 
-					deltaV = constraint.massMatrixInverse * constraint.jacobian.transpose() * deltaLambda;
-
-					c->bodyA->mVel += glm::vec3(deltaV(0, 0), deltaV(1, 0), deltaV(2, 0));
-					c->bodyA->mAngularVel += glm::vec3(deltaV(3, 0), deltaV(4, 0), deltaV(5, 0));
-
-					c->bodyB->mVel += glm::vec3(deltaV(6, 0), deltaV(7, 0), deltaV(8, 0));
-					c->bodyB->mAngularVel += glm::vec3(deltaV(9, 0), deltaV(10, 0), deltaV(11, 0));
+					constraint.ApplyImpulse(*c, deltaLambda);
 
 					//==== solve for tangent 1
 					constraint.EvaluateJacobian(*c, t1, j);
@@ -238,13 +251,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 					deltaLambda = c->contactPoints[j]->tangentImpulseSum2 - origTangent1ImpulseSum;
 
-					deltaV = constraint.massMatrixInverse * constraint.jacobian.transpose() * deltaLambda;
-
-					c->bodyA->mVel += glm::vec3(deltaV(0, 0), deltaV(1, 0), deltaV(2, 0));
-					c->bodyA->mAngularVel += glm::vec3(deltaV(3, 0), deltaV(4, 0), deltaV(5, 0));
-
-					c->bodyB->mVel += glm::vec3(deltaV(6, 0), deltaV(7, 0), deltaV(8, 0));
-					c->bodyB->mAngularVel += glm::vec3(deltaV(9, 0), deltaV(10, 0), deltaV(11, 0));
+					constraint.ApplyImpulse(*c, deltaLambda);
 				}
 			}
 		}
