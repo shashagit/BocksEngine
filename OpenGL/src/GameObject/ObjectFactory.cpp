@@ -35,7 +35,7 @@ void ObjectFactory::LoadBigLevel() {
 				GameObject* go = LoadObject("Cube");
 				Body* pB = static_cast<Body*>(go->GetComponent(BODY));
 				Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-				pTr->mPos = glm::vec3(2.0f * i, 2.0f*j, 2.0f * k);
+				pTr->mPos = glm::vec3(2.0f * i, 1.5f*j, 2.0f * k);
 				pB->Initialize();
 
 				//physics->dAABBTree.AddCollider(static_cast<Collider*>(go->GetComponent(COLLIDER)));
@@ -48,7 +48,7 @@ void ObjectFactory::LoadBigLevel() {
 			GameObject* go = LoadObject("Plane");
 			Body* pB = static_cast<Body*>(go->GetComponent(BODY));
 			Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-			pTr->mPos = glm::vec3(1.0f * j, -10.0f, 1.0f * k);
+			pTr->mPos = glm::vec3(1.0f * j, -2.0f, 1.0f * k);
 			pB->Initialize();
 
 			//physics->dAABBTree.AddCollider(static_cast<Collider*>(go->GetComponent(COLLIDER)));

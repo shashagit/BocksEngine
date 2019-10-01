@@ -127,7 +127,7 @@ int main(void)
 		debugMesh.LoadMesh();
 
 		float accumulator = 0.0f;
-		float maxPossible_dt = 0.016f; // 60Hz
+		float maxPossible_dt = 1.0f / 60.0f; // 60Hz
 
 		// create axes
 		/*{
@@ -370,7 +370,7 @@ int main(void)
 					physics->Initialize();
 				} 
 				if (ImGui::Button("Load Big Level")) {
-					physics->applyFriction = false;
+					physics->applyFriction = true;
 					gpGoManager->mGameObjects.clear();
 					objFactory->LoadBigLevel();
 					physics->Initialize();

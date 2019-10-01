@@ -10,6 +10,8 @@
 #include "../Managers/FrameRateController.h"
 #include "../GameObject/GameObjectManager.h"
 
+#include "imgui/imgui.h"
+
 #include <list>
 
 extern CollisionManager* colMan;
@@ -70,7 +72,6 @@ void PhysicsSystem::Update(float _deltaTime) {
 		// hack to make the ground not collide with itself
 		if (pair.first->mpBody->mMass < 1.9f ||
 			pair.second->mpBody->mMass < 1.9f) {
-
 			// perform the SAT intersection test
 			if (sat.TestIntersection3D(pair.first, pair.second)) {
 				// to color the colliding pair
@@ -105,35 +106,30 @@ void PhysicsSystem::Update(float _deltaTime) {
 	// small slop
 	float slop = -0.005f;
 	float mu = 0.2f;
+	float baumgarte = 0.1f;
+	const float bias = 1.0f;
+	
 	bool isWarmStarting = true;
 	//==== warm starting
 	if (isWarmStarting) {
-		if (!colMan->mPrevContacts.empty() && !colMan->mContacts.empty())
+		if (!colMan->mPrevContacts.empty())
 		{
-			const float bias = 1.0f;
-			auto itNew = colMan->mContacts.begin();
-			auto itOld = colMan->mPrevContacts.begin();
-			for (; itOld != colMan->mPrevContacts.end(); ++itOld)
+			for (auto itOld : colMan->mPrevContacts)
 			{
-				for (; itNew != colMan->mContacts.end(); ++itNew)
+				for (auto itNew :colMan->mContacts)
 				{
-					if (((*itNew)->bodyA == (*itOld)->bodyA &&
-						(*itNew)->bodyB == (*itOld)->bodyB) ||
-						((*itNew)->bodyA == (*itOld)->bodyB &&
-						(*itNew)->bodyB == (*itOld)->bodyA)) {
-
-						int size = (*itOld)->contactPoints.size() < (*itNew)->contactPoints.size() ?
-							(*itOld)->contactPoints.size() : (*itNew)->contactPoints.size();
-
+					if (((*itNew).bodyA == (*itOld).bodyA &&
+						(*itNew).bodyB == (*itOld).bodyB)) {
+						
 						// iterate through contact points
-						for (unsigned j = 0; j < size; ++j)
+						for (int j = 0; j < (*itOld).contactPoints.size(); ++j)
 						{
-							Contact* cNew = (*itNew)->contactPoints[j];
+							Contact* cOld = (*itOld).contactPoints[j];
 
-							for (unsigned k = 0; k < size; ++k) {
-								Contact* cOld = (*itOld)->contactPoints[k];
+							for (int k = 0; k < (*itNew).contactPoints.size(); ++k) {
+								Contact* cNew = (*itNew).contactPoints[k];
 
-								if (glm::length2(cNew->rA - cOld->rA) < 0.01f)
+								if (glm::distance2(cNew->point, cOld->point) < 0.001f)
 								{
 									cNew->normalImpulseSum = cOld->normalImpulseSum * bias;
 									cNew->tangentImpulseSum1 = cOld->tangentImpulseSum1 * bias;
@@ -141,28 +137,28 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 									// apply old impulse as warm start
 									Constraint c;
-									c.CalculateMassMatrixInv(*(*itNew));
+									c.CalculateMassMatrixInv((*itNew));
 
-									c.EvaluateJacobian(*(*itNew), (*itNew)->collisionNormal, j);
+									c.EvaluateJacobian((*itNew), (*itNew).collisionNormal, k);
 
-									c.ApplyImpulse(*(*itNew), cNew->normalImpulseSum);
+									c.ApplyImpulse((*itNew), cNew->normalImpulseSum);
 									
 									// calculate tangents (Erin Catto's code)
 									glm::vec3 t0, t1;
 
-									if (abs((*itNew)->collisionNormal.x) >= 0.57735f)
-										t0 = glm::normalize(glm::vec3((*itNew)->collisionNormal.y, -(*itNew)->collisionNormal.x, 0.0f));
+									if (abs((*itNew).collisionNormal.x) >= 0.57735f)
+										t0 = glm::normalize(glm::vec3((*itNew).collisionNormal.y, -(*itNew).collisionNormal.x, 0.0f));
 									else
-										t0 = glm::normalize(glm::vec3(0.0f, (*itNew)->collisionNormal.z, -(*itNew)->collisionNormal.y));
-									t1 = glm::cross((*itNew)->collisionNormal, t0);
+										t0 = glm::normalize(glm::vec3(0.0f, (*itNew).collisionNormal.z, -(*itNew).collisionNormal.y));
+									t1 = glm::cross((*itNew).collisionNormal, t0);
 
-									c.EvaluateJacobian(*(*itNew), t0, j);
+									c.EvaluateJacobian((*itNew), t0, k);
 
-									c.ApplyImpulse(*(*itNew), cNew->tangentImpulseSum1);
+									c.ApplyImpulse((*itNew), cNew->tangentImpulseSum1);
 
-									c.EvaluateJacobian(*(*itNew), t1, j);
+									c.EvaluateJacobian((*itNew), t1, k);
 
-									c.ApplyImpulse(*(*itNew), cNew->tangentImpulseSum2);
+									c.ApplyImpulse((*itNew), cNew->tangentImpulseSum2);
 								}
 							}
 
@@ -171,6 +167,19 @@ void PhysicsSystem::Update(float _deltaTime) {
 					}
 				}
 			}
+		}
+	}
+
+	if (!colMan->mContacts.empty()) {
+		for (auto c : colMan->mContacts) {
+		ImGui::Begin("Contact Manifold");
+			ImGui::PushID(c);
+			ImGui::Text("penetration depth %f", (*c).contactPoints[0]->penetrationDepth);
+			ImGui::Text("normal impulse sum %f", (*c).contactPoints[0]->normalImpulseSum);
+			ImGui::Text("t0 impulse sum %f", (*c).contactPoints[0]->tangentImpulseSum1);
+			ImGui::Text("t1 impulse sum %f", (*c).contactPoints[0]->tangentImpulseSum2);
+			ImGui::PopID();
+		ImGui::End();
 		}
 	}
 	
@@ -193,7 +202,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 				float effMass = 1.0f / (constraint.jacobian * constraint.massMatrixInverse * constraint.jacobian.transpose());
 
 				// bias value
-				float b = 0.1f / fixedDeltaTime * std::min(c->contactPoints[j]->penetrationDepth - slop, 0.0f);
+				float b = baumgarte / fixedDeltaTime * std::min(c->contactPoints[j]->penetrationDepth - slop, 0.0f);
 				//float b = 0.1f / fixedDeltaTime * c->contactPoints[j]->penetrationDepth;
 
 				float lambda = - effMass * (constraint.jacobian * constraint.velocityMatrix + b);
@@ -208,8 +217,8 @@ void PhysicsSystem::Update(float _deltaTime) {
 				constraint.ApplyImpulse(*c ,deltaLambda);
 
 				if (applyFriction) {
-					float nLambda = c->contactPoints[j]->normalImpulseSum;
-					//float nLambda = 9.8f / pointCount;
+					//float nLambda = c->contactPoints[j]->normalImpulseSum;
+					float nLambda = -gravity.y / pointCount;
 					
 					// calculate tangents (Erin Catto's code)
 					glm::vec3 t0, t1;
@@ -266,7 +275,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 		ContactManifold* conMan = new ContactManifold(*cm);
 		colMan->mPrevContacts.push_back(conMan);
 	}
-
+	
 	//==== integrate velocity and angular velocity
 	for (auto go : gpGoManager->mGameObjects)
 	{

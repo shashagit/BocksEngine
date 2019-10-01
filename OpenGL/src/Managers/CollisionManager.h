@@ -49,7 +49,7 @@ struct ContactManifold {
 		for(auto cp : cm.contactPoints)
 		{
 			Contact* c = new Contact();
-			c = cp;
+			*c = *cp;
 			contactPoints.push_back(c);
 		}
 	}
