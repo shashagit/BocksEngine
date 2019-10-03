@@ -4,6 +4,8 @@
 
 CollisionManager::CollisionManager()
 {
+	mContacts = new std::list<ContactManifold*>();
+	mPrevContacts = new std::list<ContactManifold*>();
 }
 
 CollisionManager::~CollisionManager()
@@ -13,9 +15,9 @@ CollisionManager::~CollisionManager()
 
 void CollisionManager::Reset()
 {
-	for (auto contact : mContacts) {
+	/*for (auto contact : mContacts) {
 		delete contact;
-	}
+	}*/
 	
-	mContacts.clear();
+	mContacts = new std::list<ContactManifold*>();
 }

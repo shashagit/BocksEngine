@@ -31,6 +31,7 @@
 #include "../GameObject/ObjectFactory.h"
 
 #include <stack>
+#include "GameObject/Profiler.h"
 
 using std::cout;
 using std::cin;
@@ -180,7 +181,10 @@ int main(void)
 			if (!isPaused) {
 				accumulator += dt;
 				while (accumulator > maxPossible_dt) {
-					physics->Update(maxPossible_dt);
+					//{
+						//Timer t;
+						physics->Update(maxPossible_dt);
+					//}
 					accumulator -= maxPossible_dt;
 				}
 			}
@@ -226,14 +230,14 @@ int main(void)
 				}
 
 				if (isDebugVectors) {
-					for (auto& c : colMan->mContacts){
+					for (auto& c : *colMan->mContacts){
 						int i = -1;
 						for (auto& cp : c->contactPoints)
 						{
 							++i;
 							GameObject* go = gpGoManager->mDebugObjects[i];
 							Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-							pTr->mPos = cp->point;
+							pTr->mPos = cp.point;
 							pTr->mScale = glm::vec3(0.1f, 0.1f, 0.1f);
 							pTr->Update();
 

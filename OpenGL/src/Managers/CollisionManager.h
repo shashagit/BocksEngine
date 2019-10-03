@@ -11,33 +11,34 @@
 #include <glm/gtx/norm.hpp>
 
 #include<algorithm>
+#include "../Resolution/Constraint.h"
+#include "../NarrowPhase/Contact.h"
 
 
-struct Contact {
-	glm::vec3 point;
-	glm::vec3 rA, rB;
-	float penetrationDepth;
-
-	float normalImpulseSum; // normal impulses accumulated
-	float tangentImpulseSum1; // tangent impulses
-	float tangentImpulseSum2;
-
-	Contact() {
-		normalImpulseSum = 0.0f;
-		tangentImpulseSum1 = 0.0f;
-		tangentImpulseSum2 = 0.0f;
-	}
-};
-
-struct ContactManifold {
-	std::vector<Contact*> contactPoints;
+class ContactManifold {
+public:
+	std::vector<Contact> contactPoints;
 
 	Body *bodyA, *bodyB;
-
+	Constraint constraint;
+	
 	glm::vec3 collisionNormal;
-
-	ContactManifold()
+	glm::vec3 t0, t1;
+	
+	ContactManifold() : collisionNormal(0), t0(0), t1(0)
 	{}
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+	void SetupGroundConstraint()
+	{
+		// calculate tangents (Erin Catto's code)
+		if (abs(collisionNormal.x) >= 0.57735f)
+			t0 = glm::normalize(glm::vec3(collisionNormal.y, -collisionNormal.x, 0.0f));
+		else
+			t0 = glm::normalize(glm::vec3(0.0f, collisionNormal.z, -collisionNormal.y));
+		t1 = glm::cross(collisionNormal, t0);
+
+		constraint.CalculateMassMatrixInv(bodyA, bodyB);
+	}
 	
 	ContactManifold(ContactManifold& cm)
 	{
@@ -45,12 +46,12 @@ struct ContactManifold {
 		bodyB = cm.bodyB;
 
 		collisionNormal = cm.collisionNormal;
+		constraint = cm.constraint;
 		
 		for(auto cp : cm.contactPoints)
 		{
-			Contact* c = new Contact();
-			*c = *cp;
-			contactPoints.push_back(c);
+			Contact c(cp);
+			contactPoints.emplace_back(c);
 		}
 	}
 };
@@ -62,8 +63,8 @@ public:
 	CollisionManager();
 	~CollisionManager();
 	
-	std::list<ContactManifold*> mContacts;
-	std::list<ContactManifold*> mPrevContacts;
+	std::list<ContactManifold*>* mContacts;
+	std::list<ContactManifold*>* mPrevContacts;
 	
 	void Reset();
 

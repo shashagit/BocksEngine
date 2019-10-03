@@ -127,7 +127,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Resolution\Constraint.cpp" />
     <ClCompile Include="src\Broadphase\DynamicAABBTree.cpp" />
     <ClCompile Include="src\Broadphase\NSquaredBroadphase.cpp" />
     <ClCompile Include="src\Application.cpp" />
@@ -299,6 +298,8 @@
     <None Include="src\vendor\glm\gtx\wrap.inl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\GameObject\Profiler.h" />
+    <ClInclude Include="src\NarrowPhase\Contact.h" />
     <ClInclude Include="src\Resolution\Constraint.h" />
     <ClInclude Include="src\Broadphase\DynamicAABBTree.h" />
     <ClInclude Include="src\Broadphase\Broadphase.h" />

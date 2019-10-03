@@ -13,6 +13,7 @@
 #include "imgui/imgui.h"
 
 #include <list>
+#include "../GameObject/Profiler.h"
 
 extern CollisionManager* colMan;
 extern FrameRateController* frc;
@@ -48,250 +49,260 @@ void PhysicsSystem::Update(float _deltaTime) {
 	// uncolor all the colliders
 	for (auto go : gpGoManager->mGameObjects)
 	{
-		Collider *pCol = static_cast<Collider*>(go->GetComponent(COLLIDER));
+		Collider* pCol = static_cast<Collider*>(go->GetComponent(COLLIDER));
 		pCol->isColliding = false;
 	}
 
 	//==== check for collisions
+	//std::cout << "===================" << std::endl;
 
 	//nSquared.CalculatePairs();
 	//std::list < std::pair<Collider*, Collider*>>& pairs = nSquared.GetPairs();
+	{
+		//std::cout << "Broadphase ";
+		//Timer t;
+		// update the Dynamic AABB (remove and reinsert)
+		dAABBTree.Update();
 
-	// update the Dynamic AABB (remove and reinsert)
-	dAABBTree.Update();
+		// calculate potentially colliding pairs
+		dAABBTree.CalculatePairs();
 
-	// calculate potentially colliding pairs
-	dAABBTree.CalculatePairs();
+	}
 	std::list < std::pair<Collider*, Collider*>>& pairs = dAABBTree.GetPairs();
-
 	// reset the list of Contact manifolds
 	colMan->Reset();
 
-	// run Narrow phase on all intersection pairs
-	for (auto& pair : pairs) {
-		// hack to make the ground not collide with itself
-		if (pair.first->mpBody->mMass < 1.9f ||
-			pair.second->mpBody->mMass < 1.9f) {
-			// perform the SAT intersection test
-			if (sat.TestIntersection3D(pair.first, pair.second)) {
-				// to color the colliding pair
-				pair.first->isColliding = true;
-				pair.second->isColliding = true;
+	{
+		//std::cout << "SAT ";
+		//Timer t;
+		// run Narrow phase on all intersection pairs
+		for (auto& pair : pairs) {
+			// hack to make the ground not collide with itself
+			if (pair.first->mpBody->mMass < 1.9f ||
+				pair.second->mpBody->mMass < 1.9f) {
+				// perform the SAT intersection test
+				if (sat.TestIntersection3D(pair.first, pair.second)) {
+					// to color the colliding pair
+					pair.first->isColliding = true;
+					pair.second->isColliding = true;
+				}
 			}
 		}
 	}
 
 	//==== integrate external forces and torques
-	for (auto go : gpGoManager->mGameObjects)
 	{
-		Body *pBody = static_cast<Body*>(go->GetComponent(BODY));
-		
-		if (pBody->mInvMass == 0.0f)
-			continue;
+		//std::cout << "Force Integration ";
+		//Timer t;
 
-		// compute acceleration
-		glm::vec3 acc = pBody->mTotalForce * pBody->mInvMass;
-		acc += gravity;
-		glm::vec3 alpha = pBody->mTotalTorque * pBody->mInertiaWorldInverse;
+		for (auto go : gpGoManager->mGameObjects)
+		{
+			Body* pBody = static_cast<Body*>(go->GetComponent(BODY));
 
-		// integrate acc into the velocity
-		pBody->mVel += acc * _deltaTime;
-		pBody->mAngularVel += alpha * _deltaTime;
+			if (pBody->mInvMass == 0.0f)
+				continue;
 
-		// set forces to zero
-		pBody->mTotalForce = glm::vec3(0);
-		pBody->mTotalTorque = glm::vec3(0);
+			// compute acceleration
+			glm::vec3 acc = pBody->mTotalForce * pBody->mInvMass;
+			acc += gravity;
+			glm::vec3 alpha = pBody->mTotalTorque * pBody->mInertiaWorldInverse;
+
+			// integrate acc into the velocity
+			pBody->mVel += acc * _deltaTime;
+			pBody->mAngularVel += alpha * _deltaTime;
+
+			// set forces to zero
+			pBody->mTotalForce = glm::vec3(0);
+			pBody->mTotalTorque = glm::vec3(0);
+		}
 	}
+
 
 	// small slop
 	float slop = -0.005f;
 	float mu = 0.2f;
 	float baumgarte = 0.1f;
 	const float bias = 1.0f;
+	const float proximityEpsilon = 0.001f;
 	
 	bool isWarmStarting = true;
 	//==== warm starting
-	if (isWarmStarting) {
-		if (!colMan->mPrevContacts.empty())
-		{
-			for (auto itOld : colMan->mPrevContacts)
+	{
+		//std::cout << "Warm Start ";
+		//Timer t;
+
+		if (isWarmStarting) {
+			if (!colMan->mPrevContacts->empty())
 			{
-				for (auto itNew :colMan->mContacts)
+				for (auto itOld : *colMan->mPrevContacts)
 				{
-					if (((*itNew).bodyA == (*itOld).bodyA &&
-						(*itNew).bodyB == (*itOld).bodyB)) {
-						
-						// iterate through contact points
-						for (int j = 0; j < (*itOld).contactPoints.size(); ++j)
-						{
-							Contact* cOld = (*itOld).contactPoints[j];
+					for (auto itNew : *colMan->mContacts)
+					{
+						if (((*itNew).bodyA == (*itOld).bodyA &&
+							(*itNew).bodyB == (*itOld).bodyB)) {
 
-							for (int k = 0; k < (*itNew).contactPoints.size(); ++k) {
-								Contact* cNew = (*itNew).contactPoints[k];
+							// iterate through contact points
+							for (int j = 0; j < (*itOld).contactPoints.size(); ++j)
+							{
+								Contact& cOld = (*itOld).contactPoints[j];
 
-								if (glm::distance2(cNew->point, cOld->point) < 0.001f)
-								{
-									cNew->normalImpulseSum = cOld->normalImpulseSum * bias;
-									cNew->tangentImpulseSum1 = cOld->tangentImpulseSum1 * bias;
-									cNew->tangentImpulseSum2 = cOld->tangentImpulseSum2 * bias;
+								for (int k = 0; k < (*itNew).contactPoints.size(); ++k) {
+									Contact& cNew = (*itNew).contactPoints[k];
 
-									// apply old impulse as warm start
-									Constraint c;
-									c.CalculateMassMatrixInv((*itNew));
+									if (glm::distance2(cNew.point, cOld.point) < proximityEpsilon)
+									{
+										cNew.normalImpulseSum = cOld.normalImpulseSum * bias;
+										cNew.tangentImpulseSum1 = cOld.tangentImpulseSum1 * bias;
+										cNew.tangentImpulseSum2 = cOld.tangentImpulseSum2 * bias;
 
-									c.EvaluateJacobian((*itNew), (*itNew).collisionNormal, k);
+										// apply old impulse as warm start
+										(itNew)->constraint.EvaluateJacobian(&cNew, itNew->collisionNormal);
+										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB, cNew.normalImpulseSum);
 
-									c.ApplyImpulse((*itNew), cNew->normalImpulseSum);
-									
-									// calculate tangents (Erin Catto's code)
-									glm::vec3 t0, t1;
-
-									if (abs((*itNew).collisionNormal.x) >= 0.57735f)
-										t0 = glm::normalize(glm::vec3((*itNew).collisionNormal.y, -(*itNew).collisionNormal.x, 0.0f));
-									else
-										t0 = glm::normalize(glm::vec3(0.0f, (*itNew).collisionNormal.z, -(*itNew).collisionNormal.y));
-									t1 = glm::cross((*itNew).collisionNormal, t0);
-
-									c.EvaluateJacobian((*itNew), t0, k);
-
-									c.ApplyImpulse((*itNew), cNew->tangentImpulseSum1);
-
-									c.EvaluateJacobian((*itNew), t1, k);
-
-									c.ApplyImpulse((*itNew), cNew->tangentImpulseSum2);
+										itNew->constraint.EvaluateJacobian(&cNew, itNew->t0);
+										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB,  cNew.tangentImpulseSum1);
+										
+										itNew->constraint.EvaluateJacobian(&cNew, itNew->t1);
+										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB, cNew.tangentImpulseSum2);
+									}
 								}
+
 							}
 
 						}
-
 					}
 				}
 			}
 		}
 	}
 
-	if (!colMan->mContacts.empty()) {
-		for (auto c : colMan->mContacts) {
+	/*if (!colMan->mContacts->empty()) {
+		for (auto c : *colMan->mContacts) {
 		ImGui::Begin("Contact Manifold");
 			ImGui::PushID(c);
-			ImGui::Text("penetration depth %f", (*c).contactPoints[0]->penetrationDepth);
-			ImGui::Text("normal impulse sum %f", (*c).contactPoints[0]->normalImpulseSum);
-			ImGui::Text("t0 impulse sum %f", (*c).contactPoints[0]->tangentImpulseSum1);
-			ImGui::Text("t1 impulse sum %f", (*c).contactPoints[0]->tangentImpulseSum2);
+			ImGui::Text("penetration depth %f", (*c).contactPoints[0].penetrationDepth);
+			ImGui::Text("normal impulse sum %f", (*c).contactPoints[0].normalImpulseSum);
+			ImGui::Text("t0 impulse sum %f", (*c).contactPoints[0].tangentImpulseSum1);
+			ImGui::Text("t1 impulse sum %f", (*c).contactPoints[0].tangentImpulseSum2);
 			ImGui::PopID();
 		ImGui::End();
 		}
-	}
-	
-	//==== solve constraints
-	for (int i = 0; i < impulseIterations; ++i) {
-		for (auto c : colMan->mContacts) {
-			
-			//std::cout << c->contactPoints[0]->normalImpulseSum << std::endl;
-			Constraint constraint;
-			constraint.CalculateMassMatrixInv(*c);
-			int pointCount = c->contactPoints.size();
+	}*/
 
-			for (int j = 0; j <pointCount; ++j) {
+	{
+		//std::cout << "SI solver ";
+		//Timer t;
+		//==== solve constraints
+		for (int i = 0; i < impulseIterations; ++i) {
+			for (auto c : *colMan->mContacts) {
 
-				constraint.EvaluateVelocityVector(*c);
+				//std::cout << c->contactPoints[0]->normalImpulseSum << std::endl;
+				int pointCount = c->contactPoints.size();
 
-				//===== solve for normal constraint
-				constraint.EvaluateJacobian(*c, c->collisionNormal, j);
+				for (int j = 0; j < pointCount; ++j) {
 
-				float effMass = 1.0f / (constraint.jacobian * constraint.massMatrixInverse * constraint.jacobian.transpose());
+					c->constraint.EvaluateVelocityVector(c->bodyA, c->bodyB);
 
-				// bias value
-				float b = baumgarte / fixedDeltaTime * std::min(c->contactPoints[j]->penetrationDepth - slop, 0.0f);
-				//float b = 0.1f / fixedDeltaTime * c->contactPoints[j]->penetrationDepth;
+					//===== solve for normal constraint
+					c->constraint.EvaluateJacobian(&c->contactPoints[j], c->collisionNormal);
 
-				float lambda = - effMass * (constraint.jacobian * constraint.velocityMatrix + b);
-				float origNormalImpulseSum = c->contactPoints[j]->normalImpulseSum;
+					float effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobian.transpose());
 
-				c->contactPoints[j]->normalImpulseSum += lambda;
-				c->contactPoints[j]->normalImpulseSum =
-					glm::clamp(c->contactPoints[j]->normalImpulseSum, 0.0f, std::numeric_limits<float>::infinity());
+					// bias value
+					float b = baumgarte / fixedDeltaTime * std::min(c->contactPoints[j].penetrationDepth - slop, 0.0f);
+					//float b = 0.1f / fixedDeltaTime * c->contactPoints[j]->penetrationDepth;
 
-				float deltaLambda = c->contactPoints[j]->normalImpulseSum - origNormalImpulseSum;
+					float lambda = -effMass * (c->constraint.jacobian * c->constraint.velocityMatrix + b);
+					float origNormalImpulseSum = c->contactPoints[j].normalImpulseSum;
 
-				constraint.ApplyImpulse(*c ,deltaLambda);
+					c->contactPoints[j].normalImpulseSum += lambda;
+					c->contactPoints[j].normalImpulseSum =
+						glm::clamp(c->contactPoints[j].normalImpulseSum, 0.0f, std::numeric_limits<float>::infinity());
 
-				if (applyFriction) {
-					//float nLambda = c->contactPoints[j]->normalImpulseSum;
-					float nLambda = -gravity.y / pointCount;
-					
-					// calculate tangents (Erin Catto's code)
-					glm::vec3 t0, t1;
+					float deltaLambda = c->contactPoints[j].normalImpulseSum - origNormalImpulseSum;
 
-					if (abs(c->collisionNormal.x) >= 0.57735f)
-						t0 = glm::normalize(glm::vec3(c->collisionNormal.y, -c->collisionNormal.x, 0.0f));
-					else
-						t0 = glm::normalize(glm::vec3(0.0f, c->collisionNormal.z, -c->collisionNormal.y));
-					t1 = glm::cross(c->collisionNormal, t0);
+					c->constraint.ApplyImpulse(c->bodyA, c->bodyB, deltaLambda);
 
-					//==== solve for tangent 0
-					constraint.EvaluateJacobian(*c, t0, j);
+					if (applyFriction) {
+						//float nLambda = c->contactPoints[j]->normalImpulseSum;
+						float nLambda = -gravity.y / pointCount;
 
-					effMass = 1.0f / (constraint.jacobian * constraint.massMatrixInverse * constraint.jacobian.transpose());
+						// calculate tangents (Erin Catto's code)
+						glm::vec3 t0, t1;
 
-					lambda = -effMass * (constraint.jacobian * constraint.velocityMatrix + 0.0f);
-					
-					float origTangent0ImpulseSum = c->contactPoints[j]->tangentImpulseSum1;
+						if (abs(c->collisionNormal.x) >= 0.57735f)
+							t0 = glm::normalize(glm::vec3(c->collisionNormal.y, -c->collisionNormal.x, 0.0f));
+						else
+							t0 = glm::normalize(glm::vec3(0.0f, c->collisionNormal.z, -c->collisionNormal.y));
+						t1 = glm::cross(c->collisionNormal, t0);
 
-					c->contactPoints[j]->tangentImpulseSum1 += lambda;
-					c->contactPoints[j]->tangentImpulseSum1 =
-						glm::clamp(c->contactPoints[j]->tangentImpulseSum1, -mu * nLambda, mu * nLambda);
+						//==== solve for tangent 0
+						c->constraint.EvaluateJacobian(&c->contactPoints[j], t0);
 
-					deltaLambda = c->contactPoints[j]->tangentImpulseSum1 - origTangent0ImpulseSum;
+						effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobian.transpose());
 
-					constraint.ApplyImpulse(*c, deltaLambda);
+						lambda = -effMass * (c->constraint.jacobian * c->constraint.velocityMatrix + 0.0f);
 
-					//==== solve for tangent 1
-					constraint.EvaluateJacobian(*c, t1, j);
+						float origTangent0ImpulseSum = c->contactPoints[j].tangentImpulseSum1;
 
-					effMass = 1.0f / (constraint.jacobian * constraint.massMatrixInverse * constraint.jacobian.transpose());
+						c->contactPoints[j].tangentImpulseSum1 += lambda;
+						c->contactPoints[j].tangentImpulseSum1 =
+							glm::clamp(c->contactPoints[j].tangentImpulseSum1, -mu * nLambda, mu * nLambda);
 
-					lambda = -effMass * (constraint.jacobian * constraint.velocityMatrix + 0.0f);
-					float origTangent1ImpulseSum = c->contactPoints[j]->tangentImpulseSum2;
+						deltaLambda = c->contactPoints[j].tangentImpulseSum1 - origTangent0ImpulseSum;
 
-					c->contactPoints[j]->tangentImpulseSum2 += lambda;
-					c->contactPoints[j]->tangentImpulseSum2 =
-						glm::clamp(c->contactPoints[j]->tangentImpulseSum2, -mu * nLambda, mu * nLambda);
+						c->constraint.ApplyImpulse(c->bodyA, c->bodyB, deltaLambda);
 
-					deltaLambda = c->contactPoints[j]->tangentImpulseSum2 - origTangent1ImpulseSum;
+						//==== solve for tangent 1
+						c->constraint.EvaluateJacobian(&c->contactPoints[j], t1);
 
-					constraint.ApplyImpulse(*c, deltaLambda);
+						effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobian.transpose());
+
+						lambda = -effMass * (c->constraint.jacobian * c->constraint.velocityMatrix + 0.0f);
+						float origTangent1ImpulseSum = c->contactPoints[j].tangentImpulseSum2;
+
+						c->contactPoints[j].tangentImpulseSum2 += lambda;
+						c->contactPoints[j].tangentImpulseSum2 =
+							glm::clamp(c->contactPoints[j].tangentImpulseSum2, -mu * nLambda, mu * nLambda);
+
+						deltaLambda = c->contactPoints[j].tangentImpulseSum2 - origTangent1ImpulseSum;
+
+						c->constraint.ApplyImpulse(c->bodyA, c->bodyB, deltaLambda);
+					}
 				}
 			}
 		}
 	}
 
-	// Copy contacts into previous list
-	for (auto contact : colMan->mPrevContacts) {
-		delete contact;
-	}
-	colMan->mPrevContacts.clear();
-	for (auto cm : colMan->mContacts) {
-		ContactManifold* conMan = new ContactManifold(*cm);
-		colMan->mPrevContacts.push_back(conMan);
+	{
+		//std::cout << "Copy ";
+		//Timer t;
+		// Copy contacts into previous list
+		colMan->mPrevContacts = colMan->mContacts;
 	}
 	
-	//==== integrate velocity and angular velocity
-	for (auto go : gpGoManager->mGameObjects)
 	{
-		Body *pBody = static_cast<Body*>(go->GetComponent(BODY));
-		// save current position
-		pBody->mPrevPos = pBody->mPos;
+		//std::cout << "Velocity integration ";
+		//Timer t;
+		//==== integrate velocity and angular velocity
+		for (auto go : gpGoManager->mGameObjects)
+		{
+			Body* pBody = static_cast<Body*>(go->GetComponent(BODY));
+			// save current position
+			pBody->mPrevPos = pBody->mPos;
 
-		// integrate the position
-		pBody->mPos += pBody->mVel * _deltaTime;
-		// integrate the orientation
-		glm::fquat newQuat = 0.5f * (pBody->mAngularVel) *pBody->mQuaternion * _deltaTime;
-		pBody->mQuaternion *= newQuat;
+			// integrate the position
+			pBody->mPos += pBody->mVel * _deltaTime;
+			// integrate the orientation
+			glm::fquat newQuat = 0.5f * (pBody->mAngularVel) * pBody->mQuaternion * _deltaTime;
+			pBody->mQuaternion *= newQuat;
 
-		// using this instead causes weird behaviour
-		//pBody->mQuaternion += 0.5f * glm::fquat(pBody->mAngularVel) *pBody->mQuaternion * _deltaTime;
+			// using this instead causes weird behaviour
+			//pBody->mQuaternion += 0.5f * glm::fquat(pBody->mAngularVel) *pBody->mQuaternion * _deltaTime;
+		}
 	}
+
+	//std::cout << "===================" << std::endl;
 }
 
 // Interpolates the state of bodies to accurately render them

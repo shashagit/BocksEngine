@@ -185,7 +185,7 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 			pointOnFace = refCollider->mpBody->mRotationMatrix * pointOnFace + refCollider->mpBody->mPos;
 			faceNormal = refCollider->mpBody->mRotationMatrix * faceNormal;
 
-			if(clippedPoly.size() > 0)
+			if(!clippedPoly.empty())
 				clippedPoly = ClipPolygon(clippedPoly, faceNormal, pointOnFace);
 
 			startingEdge = referenceMeshData.edges[startingEdge].next;
@@ -195,28 +195,123 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 		glm::vec3 pointOnRef = refCollider->mpBody->mRotationMatrix * referenceMeshData.GetPointOnFace(refIndex)
 			+ refCollider->mpBody->mPos;
 		
-		if (clippedPoly.size() > 0)
+		if (!clippedPoly.empty())
 			clippedPoly = ClipPolygon(clippedPoly, refFaceNormal, pointOnRef);
 
+		Contact deepest;
+		deepest.penetrationDepth = std::numeric_limits<float>::max();
+
+		std::vector<Contact> tempContacts;
+		
 		// save penetration depth for all points from the reference face
 		for (auto& point : clippedPoly) {
 			float depth = glm::dot(refFaceNormal, point - pointOnRef);
 			if (depth <= 0.0f) {
-				Contact * c = new Contact();
-				c->penetrationDepth = depth;
-				c->point = point;
+				Contact c;
+				c.penetrationDepth = depth;
+				c.point = point;
 
-				manifold->contactPoints.push_back(c);
+				tempContacts.emplace_back(c);
+
+				if(deepest.penetrationDepth > depth)
+				{
+					deepest = c;
+				}
 			}
 		}
+		
+		manifold->contactPoints.emplace_back(deepest);
+				
+		if(tempContacts.size() <= 4)
+		{
+			manifold->contactPoints.swap(tempContacts);
+		}
+		else 
+		{
+			// Select 3 more points out of all available
+			Contact furthest, triangle, fourth;
+			float far = -std::numeric_limits<float>::max();
+			for (auto& point : tempContacts)
+			{
+				float distSq = glm::distance2(point.point, deepest.point);
+				if(distSq > far)
+				{
+					far = distSq;
+					furthest = point;
+				}
+			}
+			manifold->contactPoints.emplace_back(furthest);
 
+			// find largest area triangle
+			float maxArea = -std::numeric_limits<float>::max();
+			int winding = 0;
+			for (auto& point : tempContacts)
+			{
+				glm::vec3 side1 = manifold->contactPoints[0].point - point.point;
+				glm::vec3 side2 = manifold->contactPoints[1].point - point.point;
+
+				float area = 0.5f * glm::dot(glm::cross(side1, side2), refFaceNormal);
+				if (abs(area) > maxArea)
+				{
+					if (area < 0) winding = -1; else winding = 1;
+					maxArea = abs(area);
+					triangle = point;
+				}
+			}
+			manifold->contactPoints.emplace_back(triangle);
+
+			maxArea = -std::numeric_limits<float>::max();
+			glm::vec3 side1(0);
+			glm::vec3 side2(0);
+			int A = 0, B = 1, C = 2;
+			if(winding < 0)
+			{
+				A = 2; B = 0; C = 1;
+			}
+			float totalArea = 0.0f, area;
+			for (auto& point : tempContacts)
+			{
+				totalArea = 0.0f;
+				
+				side1 = manifold->contactPoints[A].point - point.point;
+				side2 = manifold->contactPoints[B].point - point.point;
+
+				area = 0.5f * glm::dot(glm::cross(side1, side2), refFaceNormal);
+				if (area < 0) 
+				totalArea += area;
+				
+				side1 = manifold->contactPoints[B].point - point.point;
+				side2 = manifold->contactPoints[C].point - point.point;
+
+				area = 0.5f * glm::dot(glm::cross(side1, side2), refFaceNormal);
+				if (area < 0)
+				totalArea += area;
+
+				side1 = manifold->contactPoints[C].point - point.point;
+				side2 = manifold->contactPoints[A].point - point.point;
+
+				area = 0.5f * glm::dot(glm::cross(side1, side2), refFaceNormal);
+				if (area < 0)
+				totalArea += area;
+
+				if (abs(totalArea) > maxArea)
+				{
+					maxArea = abs(totalArea);
+					fourth = point;
+				}
+			}
+			manifold->contactPoints.emplace_back(fourth);
+			
+		}
+		
+		
 		// project points onto reference face to calculate rA and rB
 		int size = manifold->contactPoints.size();
 		for (int i = 0; i < size; ++i) {
-			glm::vec3 projected = manifold->contactPoints[i]->point - refFaceNormal * manifold->contactPoints[i]->penetrationDepth;
+			glm::vec3 projected = manifold->contactPoints[i].point - refFaceNormal * manifold->contactPoints[i].penetrationDepth;
 			
-			manifold->contactPoints[i]->rA = projected - refCollider->mpBody->mPos;
-			manifold->contactPoints[i]->rB = manifold->contactPoints[i]->point - inciCollider->mpBody->mPos;
+			manifold->contactPoints[i].rA = projected - refCollider->mpBody->mPos;
+			manifold->contactPoints[i].rB = manifold->contactPoints[i].point - inciCollider->mpBody->mPos;
 		}
 
 		// save contact normal
@@ -231,7 +326,7 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 		manifold->bodyB = inciCollider->mpBody;
 
 		// push back the contacts into the list of manifolds
-		colMan->mContacts.push_back(manifold);
+		colMan->mContacts->push_back(manifold);
 	}
 	else if(edgeQuery.edgeA != -1) {
 	// edge case
@@ -254,12 +349,12 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 		glm::vec3 edgeA = pA2 - pA1;
 		glm::vec3 edgeB = pB2 - pB1;
 
-		Contact* c = new Contact();
-		c->point = 0.5f * (pointOnA + pointOnB);
-		c->penetrationDepth = -depth;
+		Contact c;
+		c.point = 0.5f * (pointOnA + pointOnB);
+		c.penetrationDepth = -depth;
 
-		c->rA = pointOnA - col1->mpBody->mPos;
-		c->rB = pointOnB - col2->mpBody->mPos;
+		c.rA = pointOnA - col1->mpBody->mPos;
+		c.rB = pointOnB - col2->mpBody->mPos;
 
 		manifold->collisionNormal = glm::cross(edgeA, edgeB);
 
@@ -277,9 +372,9 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 		manifold->bodyA = col1->mpBody;
 		manifold->bodyB = col2->mpBody;
 
-		manifold->contactPoints.push_back(c);
+		manifold->contactPoints.emplace_back(c);
 
-		colMan->mContacts.push_back(manifold);
+		colMan->mContacts->push_back(manifold);
 	}
 
 	//{
@@ -304,6 +399,9 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 	//	ImGui::End();
 	//}
 
+	// setting up mass matrix inv here
+	manifold->SetupGroundConstraint();
+	
 	return true;
 }
 

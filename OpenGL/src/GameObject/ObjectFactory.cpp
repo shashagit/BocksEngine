@@ -35,20 +35,20 @@ void ObjectFactory::LoadBigLevel() {
 				GameObject* go = LoadObject("Cube");
 				Body* pB = static_cast<Body*>(go->GetComponent(BODY));
 				Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-				pTr->mPos = glm::vec3(2.0f * i, 1.5f*j, 2.0f * k);
+				pTr->mPos = glm::vec3(2.0f * i, 1.2f*j, 2.0f * k);
 				pB->Initialize();
 
 				//physics->dAABBTree.AddCollider(static_cast<Collider*>(go->GetComponent(COLLIDER)));
 			}
 		}
 	}
-	dim = 10;
+	dim = 11;
 	for (int j = 0; j < dim; ++j) {
 		for (int k = 0; k < dim; ++k) {
 			GameObject* go = LoadObject("Plane");
 			Body* pB = static_cast<Body*>(go->GetComponent(BODY));
 			Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-			pTr->mPos = glm::vec3(1.0f * j, -2.0f, 1.0f * k);
+			pTr->mPos = glm::vec3(1.0f * j - 1.0f, -6.0f, 1.0f * k - 1.0f);
 			pB->Initialize();
 
 			//physics->dAABBTree.AddCollider(static_cast<Collider*>(go->GetComponent(COLLIDER)));

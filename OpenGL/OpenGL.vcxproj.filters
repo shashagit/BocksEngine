@@ -108,9 +108,6 @@
     <ClCompile Include="src\NarrowPhase\SAT.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Resolution\Constraint.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="res\shaders\Basic.shader" />
@@ -1345,6 +1342,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Resolution\Constraint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\GameObject\Profiler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\NarrowPhase\Contact.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
