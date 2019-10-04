@@ -206,7 +206,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 					//===== solve for normal constraint
 					c->constraint.EvaluateJacobian(&c->contactPoints[j], c->collisionNormal);
 
-					float effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobian.transpose());
+					float effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobianT);
 
 					// bias value
 					float b = baumgarte / fixedDeltaTime * std::min(c->contactPoints[j].penetrationDepth - slop, 0.0f);
@@ -239,7 +239,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 						//==== solve for tangent 0
 						c->constraint.EvaluateJacobian(&c->contactPoints[j], t0);
 
-						effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobian.transpose());
+						effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobianT);
 
 						lambda = -effMass * (c->constraint.jacobian * c->constraint.velocityMatrix + 0.0f);
 
@@ -256,7 +256,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 						//==== solve for tangent 1
 						c->constraint.EvaluateJacobian(&c->contactPoints[j], t1);
 
-						effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobian.transpose());
+						effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobianT);
 
 						lambda = -effMass * (c->constraint.jacobian * c->constraint.velocityMatrix + 0.0f);
 						float origTangent1ImpulseSum = c->contactPoints[j].tangentImpulseSum2;

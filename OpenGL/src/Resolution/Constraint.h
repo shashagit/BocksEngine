@@ -12,6 +12,7 @@ class Constraint
 public:
 	Eigen::Matrix<float, 12, 12> massMatrixInverse;
 	Eigen::Matrix<float, 1, 12> jacobian;
+	Eigen::Matrix<float, 12, 1> jacobianT;
 	Eigen::Matrix<float, 12, 1> velocityMatrix;
 	// makes the jacobian for the given constraint
 	inline void EvaluateJacobian(Contact* c, glm::vec3 dir)
@@ -33,6 +34,20 @@ public:
 		jacobian(0, 9) = rB_x_n.x;
 		jacobian(0, 10) = rB_x_n.y;
 		jacobian(0, 11) = rB_x_n.z;
+
+		
+		jacobianT( 0, 0) = -dir.x;
+		jacobianT(1, 0) = -dir.y;
+		jacobianT(2, 0) = -dir.z;
+		jacobianT(3, 0) = -rA_x_n.x;
+		jacobianT(4, 0) = -rA_x_n.y;
+		jacobianT(5, 0) = -rA_x_n.z;
+		jacobianT(6, 0) = dir.x;
+		jacobianT(7, 0) = dir.y;
+		jacobianT(8, 0) = dir.z;
+		jacobianT(9, 0) = rB_x_n.x;
+		jacobianT(10, 0) = rB_x_n.y;
+		jacobianT(11, 0) = rB_x_n.z;
 	}
 
 	// makes the mass matrix and calculates the effective mass
@@ -87,7 +102,7 @@ public:
 
 	inline void ApplyImpulse(Body* bodyA, Body* bodyB, float impulse)
 	{
-		deltaV = massMatrixInverse * jacobian.transpose() * impulse;
+		deltaV = massMatrixInverse * jacobianT * impulse;
 
 		bodyA->mVel += glm::vec3(deltaV(0, 0), deltaV(1, 0), deltaV(2, 0));
 		bodyA->mAngularVel += glm::vec3(deltaV(3, 0), deltaV(4, 0), deltaV(5, 0));
