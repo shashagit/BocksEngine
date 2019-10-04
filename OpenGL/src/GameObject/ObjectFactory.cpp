@@ -28,14 +28,15 @@ ObjectFactory::~ObjectFactory()
 
 void ObjectFactory::LoadBigLevel() {
 
-	int dim = 5;
+	int dim = 9;
+	int height = 5;
 	for (int i = 0; i < dim; ++i) {
 		for (int j = 0; j < dim; ++j) {
-			for (int k = 0; k < dim; ++k) {
+			for (int k = 0; k < height; ++k) {
 				GameObject* go = LoadObject("Cube");
 				Body* pB = static_cast<Body*>(go->GetComponent(BODY));
 				Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-				pTr->mPos = glm::vec3(2.0f * i, 1.2f*j, 2.0f * k);
+				pTr->mPos = glm::vec3(2.0f * i, 1.2f*k, 2.0f * j);
 				pB->Initialize();
 
 				//physics->dAABBTree.AddCollider(static_cast<Collider*>(go->GetComponent(COLLIDER)));
