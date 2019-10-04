@@ -78,15 +78,14 @@ void PhysicsSystem::Update(float _deltaTime) {
 		// run Narrow phase on all intersection pairs
 		for (auto& pair : pairs) {
 			// hack to make the ground not collide with itself
-			if (pair.first->mpBody->mMass < 1.9f ||
-				pair.second->mpBody->mMass < 1.9f) {
+			
 				// perform the SAT intersection test
 				if (sat.TestIntersection3D(pair.first, pair.second)) {
 					// to color the colliding pair
 					pair.first->isColliding = true;
 					pair.second->isColliding = true;
 				}
-			}
+			
 		}
 	}
 

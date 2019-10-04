@@ -42,16 +42,15 @@ void ObjectFactory::LoadBigLevel() {
 			}
 		}
 	}
-	dim = 11;
-	for (int j = 0; j < dim; ++j) {
-		for (int k = 0; k < dim; ++k) {
-			GameObject* go = LoadObject("Plane");
-			Body* pB = static_cast<Body*>(go->GetComponent(BODY));
-			Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-			pTr->mPos = glm::vec3(1.0f * j - 1.0f, -6.0f, 1.0f * k - 1.0f);
-			pB->Initialize();
-
-			//physics->dAABBTree.AddCollider(static_cast<Collider*>(go->GetComponent(COLLIDER)));
+	
+	for (int i = 0; i < dim; ++i) {
+		for (int j = 0; j < dim; ++j) {
+				GameObject* go = LoadObject("Plane");
+				Body* pB = static_cast<Body*>(go->GetComponent(BODY));
+				Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
+				pTr->mPos = glm::vec3(2.0f * i, -5.0f, 2.0f * j);
+				pB->Initialize();
+				//physics->dAABBTree.AddCollider(static_cast<Collider*>(go->GetComponent(COLLIDER)));
 		}
 	}
 }
