@@ -113,7 +113,7 @@ struct MeshData {
 		glm::vec3 edge1 = GetEdgeDirection(edge);
 		glm::vec3 edge2 = GetEdgeDirection(edges[edge].next);
 
-		faces[faceIndex].normal = glm::cross(edge1, edge2);
+		faces[faceIndex].normal = glm::normalize(glm::cross(edge1, edge2));
 	}
 
 	// Helper Functions

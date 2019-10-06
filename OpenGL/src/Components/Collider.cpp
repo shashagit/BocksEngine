@@ -53,14 +53,14 @@ void Collider::Update() {
 void Collider::SetMeshData()
 {
 	// generate vertices
-	meshData.AddVertex(glm::vec3(-0.5f, -0.5f, 0.5f));
-	meshData.AddVertex(glm::vec3(0.5f, -0.5f, 0.5f));
-	meshData.AddVertex(glm::vec3(0.5f, 0.5f, 0.5f));
-	meshData.AddVertex(glm::vec3(-0.5f, 0.5f, 0.5f));
-	meshData.AddVertex(glm::vec3(-0.5f, -0.5f, -0.5f));
-	meshData.AddVertex(glm::vec3(0.5f, -0.5f, -0.5f));
-	meshData.AddVertex(glm::vec3(0.5f, 0.5f, -0.5f));
-	meshData.AddVertex(glm::vec3(-0.5f, 0.5f, -0.5f));
+	meshData.AddVertex(mpTr->mScale * glm::vec3(-0.5f, -0.5f, 0.5f));
+	meshData.AddVertex(mpTr->mScale * glm::vec3(0.5f, -0.5f, 0.5f));
+	meshData.AddVertex(mpTr->mScale * glm::vec3(0.5f, 0.5f, 0.5f));
+	meshData.AddVertex(mpTr->mScale * glm::vec3(-0.5f, 0.5f, 0.5f));
+	meshData.AddVertex(mpTr->mScale * glm::vec3(-0.5f, -0.5f, -0.5f));
+	meshData.AddVertex(mpTr->mScale * glm::vec3(0.5f, -0.5f, -0.5f));
+	meshData.AddVertex(mpTr->mScale * glm::vec3(0.5f, 0.5f, -0.5f));
+	meshData.AddVertex(mpTr->mScale * glm::vec3(-0.5f, 0.5f, -0.5f));
 
 	// generate (quadrilateral) faces
 	std::vector<int> faceVerts;

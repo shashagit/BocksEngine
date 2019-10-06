@@ -1,7 +1,11 @@
 {
 	"Cube": {
     "Transform" : {
-		"Position" : { "x" : 0.0, "y" : 7.0, "z" : 0.0}
+        "Position": {
+            "x": 0.0,
+            "y": 7.0,
+            "z": 0.0
+        }
 	}
   },
   "Cube": {
