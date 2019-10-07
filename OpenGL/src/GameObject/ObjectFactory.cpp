@@ -46,7 +46,7 @@ void ObjectFactory::LoadBigLevel() {
 	GameObject* go = LoadObject("Plane");
 	Body* pB = static_cast<Body*>(go->GetComponent(BODY));
 	Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-	pTr->mPos = glm::vec3(6.0f, -5.0f, 6.0f);
+	pTr->mPos = glm::vec3(4.0f, -5.0f, 4.0f);
 	pB->Initialize();
 	//for (int i = 0; i < dim; ++i) {
 	//	for (int j = 0; j < dim; ++j) {
