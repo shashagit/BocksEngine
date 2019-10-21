@@ -17,7 +17,7 @@ Body::Body() : Component(BODY)
 	mRotationMatrix = glm::mat4(1.0f);
 	mAngularVel = glm::vec3(0.0f);
 
-	//mQuaternion = glm::fquat(0.0f, 0.0f, 0.0f, 1.0f);
+	mQuaternion = glm::fquat(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 Body* Body::Create() {
@@ -59,14 +59,6 @@ void Body::Serialize(GenericObject<false, Value::ValueType> d)
 		mVel = glm::vec3(0);
 	}
 
-	if (d.HasMember("Quat")) {
-		mQuaternion.x = d["Quat"]["x"].GetFloat();
-		mQuaternion.y = d["Quat"]["y"].GetFloat();
-		mQuaternion.z = d["Quat"]["z"].GetFloat();
-		mQuaternion.w = d["Quat"]["w"].GetFloat();
-	}
-
-	mQuaternion = glm::normalize(mQuaternion);
 	//debugVector = gpGoManager->CreateDebugObject(White);
 }
 
@@ -94,5 +86,7 @@ void Body::Initialize()
 	}
 
 	mInertiaBodyInverse = glm::inverse(inertia);
+
+	mQuaternion = glm::toQuat(pTr->mRotate);
 }
 

@@ -16,6 +16,6 @@ public:
 	glm::vec3 mPos;
 	glm::vec3 mScale;
 	glm::mat4 mRotate;
-
+	glm::vec3 mEulerAngles;
 	glm::mat4 model;
 };

@@ -122,7 +122,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 	float mu = 0.2f;
 	float baumgarte = 0.1f;
 	const float bias = 1.0f;
-	const float proximityEpsilon = 0.001f;
+	const float proximityEpsilon = 0.00001f;
 	
 	bool isWarmStarting = true;
 	//==== warm starting
@@ -287,6 +287,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 		for (auto go : gpGoManager->mGameObjects)
 		{
 			Body* pBody = static_cast<Body*>(go->GetComponent(BODY));
+
 			// save current position
 			pBody->mPrevPos = pBody->mPos;
 
@@ -325,7 +326,7 @@ void PhysicsSystem::InterpolateState(float blendingFactor)
 			pBody->mInertiaBodyInverse * 
 			glm::transpose(pBody->mRotationMatrix);
 
-		pTr->mRotate = pBody->mRotationMatrix;
+		pTr->mRotate = glm::toMat4(pBody->mQuaternion);
 	}
 }
 

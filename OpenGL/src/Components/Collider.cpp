@@ -33,11 +33,11 @@ void Collider::Serialize(GenericObject<false, Value::ValueType> d) {
 	
 	SetMeshData();
 	
-	meshData.faces[0];
+	//meshData.faces[0];
 
 	// update local shape
-	static_cast<ShapeAABB*>(mpLocalShape)->mMin = glm::vec3(-0.5f, -0.5f, -0.5f) * (mpTr->mScale) + mpTr->mPos;
-	static_cast<ShapeAABB*>(mpLocalShape)->mMax = glm::vec3(0.5f, 0.5f, 0.5f) * (mpTr->mScale) + mpTr->mPos;
+	static_cast<ShapeAABB*>(mpLocalShape)->mMin = glm::vec3(-0.5f, -0.5f, -0.5f) * (mpTr->mScale);// +mpTr->mPos;
+	static_cast<ShapeAABB*>(mpLocalShape)->mMax = glm::vec3(0.5f, 0.5f, 0.5f) * (mpTr->mScale);// +mpTr->mPos;
 }
 
 void Collider::Update() {
@@ -108,13 +108,13 @@ void Collider::UpdateShape() {
 	glm::vec3 x = glm::vec3(extents.x, 0.0f, 0.0f);
 	glm::vec3 y = glm::vec3(0.0f, extents.y, 0.0f);
 	glm::vec3 z = glm::vec3(0.0f, 0.0f, extents.z);
-	glm::vec3 rotatedExtents = abs(glm::mat3(mpTr->model) * x)+
-		abs(glm::mat3(mpTr->model) * y)+
-		abs(glm::mat3(mpTr->model) * z);
+	glm::vec3 rotatedExtents = abs(glm::mat3(mpTr->mRotate) * x)+
+		abs(glm::mat3(mpTr->mRotate) * y)+
+		abs(glm::mat3(mpTr->mRotate) * z);
 
 	// based on normalized body vertices
-	static_cast<ShapeAABB*>(mpShape)->mMin = glm::vec3(-rotatedExtents.x, -rotatedExtents.y, -rotatedExtents.z) + mpTr->mPos;
-	static_cast<ShapeAABB*>(mpShape)->mMax = glm::vec3(rotatedExtents.x, rotatedExtents.y, rotatedExtents.z) + mpTr->mPos;
+	static_cast<ShapeAABB*>(mpShape)->mMin = glm::vec3(-rotatedExtents.x, -rotatedExtents.y, -rotatedExtents.z) + mpBody->mPos;
+	static_cast<ShapeAABB*>(mpShape)->mMax = glm::vec3(rotatedExtents.x, rotatedExtents.y, rotatedExtents.z) + mpBody->mPos;
 }
 
 Collider::~Collider()

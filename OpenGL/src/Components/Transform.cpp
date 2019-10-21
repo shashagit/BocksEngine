@@ -4,6 +4,7 @@ Transform::Transform() : Component(TRANSFORM), mPos(0)
 {
 	mRotate = glm::mat4(1.0);
 	mScale = glm::vec3(1.0f, 1.0f, 1.0f);
+	mEulerAngles = glm::vec3(0.0f);
 }
 
 Transform* Transform::Create() {
@@ -16,9 +17,6 @@ Transform::~Transform()
 
 void Transform::Update() {
 	model = glm::translate(glm::mat4(1.0f), mPos);
-	/*model = glm::rotate(model, glm::radians(mRotate.x), glm::vec3(1.0f, 0.0f, 0.0f));
-	model = glm::rotate(model, glm::radians(mRotate.y), glm::vec3(0.0f, 1.0f, 0.0f));
-	model = glm::rotate(model, glm::radians(mRotate.z), glm::vec3(0.0f, 0.0f, 1.0f));*/
 	model *= mRotate;
 	model = glm::scale(model, mScale);
 }
@@ -38,6 +36,13 @@ void Transform::Serialize(GenericObject<false, Value::ValueType> doc)
 	}
 
 	// update to use mRotate matrix instead of angle values
-	//if (doc.HasMember("Angle"))
-		//mRotate.x = doc["Angle"]["x"].GetFloat();
+	if (doc.HasMember("Angle")) {
+		mEulerAngles.x = doc["Angle"]["x"].GetFloat();
+		mEulerAngles.y = doc["Angle"]["y"].GetFloat();
+		mEulerAngles.z = doc["Angle"]["z"].GetFloat();
+	}
+	
+	mRotate = glm::rotate(glm::mat4(1.0f), glm::radians(mEulerAngles.x), glm::vec3(1.0f, 0.0f, 0.0f));
+	mRotate = glm::rotate(mRotate, glm::radians(mEulerAngles.y), glm::vec3(0.0f, 1.0f, 0.0f));
+	mRotate = glm::rotate(mRotate, glm::radians(mEulerAngles.z), glm::vec3(0.0f, 0.0f, 1.0f));
 }

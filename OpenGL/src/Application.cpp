@@ -170,7 +170,7 @@ int main(void)
 			glm::mat4 view = camera->GetViewMatrix();
 
 			gpGoManager->Update();
-
+			
 			isPaused = input->isTriggered(P) == true ? !isPaused : isPaused;
 			nextStep = input->isTriggered(F);
 
@@ -183,16 +183,19 @@ int main(void)
 				while (accumulator > maxPossible_dt) {
 					//{
 						//Timer t;
-						physics->Update(maxPossible_dt);
+					physics->Update(maxPossible_dt);
 					//}
 					accumulator -= maxPossible_dt;
 				}
+				physics->InterpolateState(accumulator / maxPossible_dt);
 			}
 			else if (nextStep) {
+				accumulator = 0.0f;
 				physics->Update(maxPossible_dt);
+				physics->InterpolateState(1.0f);
 			}
-			physics->InterpolateState(accumulator / maxPossible_dt);
 			//====================================================
+			
 			/* Render here */  
 			renderer->Clear();
 			if (!isDebugWireframe) {
@@ -213,7 +216,6 @@ int main(void)
 				}
 			}
 			
-
 			// draw debug
 			debugShader.Bind();
 			{
