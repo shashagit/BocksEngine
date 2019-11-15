@@ -56,16 +56,16 @@ int main(void)
 	if (!glfwInit())
 		return -1;
 	GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-	const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+	/*const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 	glfwWindowHint(GLFW_RED_BITS, mode->redBits);
 	glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+	glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);*/
 	//glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	SCR_WIDTH = (float)mode->width;
-	SCR_HEIGHT = (float)mode->height;
+	SCR_WIDTH = 1280;// (float)mode->width;
+	SCR_HEIGHT = 720;// (float)mode->height;
 	// change first NULL argument to window to run in full screen mode
 	// BEWARE:: if an exception is thrown the window cannot be closed or minimized
 	window = glfwCreateWindow((int)SCR_WIDTH, (int)SCR_HEIGHT, "FlyEngine", NULL, NULL);
@@ -327,15 +327,15 @@ int main(void)
 
 
 				int count = gpGoManager->mGameObjects.size();
-				if (count == 2) {
+				if (count < 5) {
 					for (int i = 0; i < count; ++i) {
 						GameObject* go = gpGoManager->mGameObjects[i];
 						//GameObject* go2 = gpGoManager->mGameObjects[2];
 						Body* pBody = static_cast<Body*>(go->GetComponent(BODY));
 						//Body* pBody2 = static_cast<Body*>(go2->GetComponent(BODY));
 						ImGui::PushID(pBody);
-						ImGui::SliderFloat3("Box position ", &pBody->mPos.x, -10.0f, 10.0f);
-						ImGui::SliderFloat4("Quaternion ", &pBody->mQuaternion.x, -1.0f, 1.0f);
+						ImGui::SliderFloat3("Velocity ", &pBody->mVel.x, -10.0f, 10.0f);
+						ImGui::SliderFloat4("Angular Velocity ", &pBody->mAngularVel.x, -1.0f, 1.0f);
 						ImGui::PopID();
 						//ImGui::SliderFloat3("box position 2", &pBody2->mPos.x, -10.0f, 10.0f);
 
@@ -379,6 +379,12 @@ int main(void)
 					physics->applyFriction = true;
 					gpGoManager->mGameObjects.clear();
 					objFactory->LoadBigLevel();
+					physics->Initialize();
+				}
+				if (ImGui::Button("Load Ball Joint")) {
+					physics->applyFriction = true;
+					gpGoManager->mGameObjects.clear();
+					objFactory->LoadJointLevel();
 					physics->Initialize();
 				}
 				

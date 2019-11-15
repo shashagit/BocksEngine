@@ -196,7 +196,7 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 			+ refCollider->mpBody->mPos ;
 		
 		if (!clippedPoly.empty())
-			clippedPoly = ClipPolygon(clippedPoly, refFaceNormal, pointOnRef - 0.005f * refFaceNormal);
+			clippedPoly = ClipPolygon(clippedPoly, refFaceNormal, pointOnRef);
 
 		Contact deepest;
 		deepest.penetrationDepth = std::numeric_limits<float>::max();

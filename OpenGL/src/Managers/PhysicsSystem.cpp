@@ -23,7 +23,9 @@ PhysicsSystem::PhysicsSystem()
 {
 	impulseIterations = 8;
 	applyFriction = false;
-	gravity = glm::vec3(0.0f, -9.8f, 0.0f);
+	isResolvingContacts = true;
+	//gravity = glm::vec3(0.0f, -9.8f, 0.0f);
+	gravity = glm::vec3(0.0f);
 }
 
 void PhysicsSystem::Initialize() {
@@ -119,7 +121,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 	// small slop
 	float slop = -0.005f;
-	float mu = 0.2f;
+	float mu = 0.02f;
 	float baumgarte = 0.1f;
 	const float bias = 1.0f;
 	const float proximityEpsilon = 0.00001f;
@@ -155,14 +157,9 @@ void PhysicsSystem::Update(float _deltaTime) {
 										cNew.tangentImpulseSum2 = cOld.tangentImpulseSum2 * bias;
 
 										// apply old impulse as warm start
-										(itNew)->constraint.EvaluateJacobian(&cNew, itNew->collisionNormal);
-										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB, cNew.normalImpulseSum);
-
-										itNew->constraint.EvaluateJacobian(&cNew, itNew->t0);
-										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB,  cNew.tangentImpulseSum1);
-										
-										itNew->constraint.EvaluateJacobian(&cNew, itNew->t1);
-										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB, cNew.tangentImpulseSum2);
+										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB, cNew.mMatxjN, cNew.normalImpulseSum);
+										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB, cNew.mMatxjT0, cNew.tangentImpulseSum1);
+										itNew->constraint.ApplyImpulse(itNew->bodyA, itNew->bodyB, cNew.mMatxjT1, cNew.tangentImpulseSum2);
 									}
 								}
 
@@ -188,6 +185,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 		}
 	}*/
 
+	if(isResolvingContacts)
 	{
 		//std::cout << "SI solver ";
 		//Timer t;
@@ -200,18 +198,15 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 				for (int j = 0; j < pointCount; ++j) {
 
-					c->constraint.EvaluateVelocityVector(c->bodyA, c->bodyB);
+					c->constraint.EvaluateVelocityJacobian(c->bodyA, c->bodyB);
 
 					//===== solve for normal constraint
-					c->constraint.EvaluateJacobian(&c->contactPoints[j], c->collisionNormal);
-
-					float effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobianT);
-
 					// bias value
 					float b = baumgarte / fixedDeltaTime * std::min(c->contactPoints[j].penetrationDepth - slop, 0.0f);
-					//float b = 0.1f / fixedDeltaTime * c->contactPoints[j]->penetrationDepth;
 
-					float lambda = -effMass * (c->constraint.jacobian * c->constraint.velocityMatrix + b);
+					float lambda = -c->contactPoints[j].effectiveMassN *
+						(c->constraint.JacobianJacobianMult(c->contactPoints[j].jacobianN, c->constraint.velocityJacobian) + b);
+
 					float origNormalImpulseSum = c->contactPoints[j].normalImpulseSum;
 
 					c->contactPoints[j].normalImpulseSum += lambda;
@@ -220,27 +215,17 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 					float deltaLambda = c->contactPoints[j].normalImpulseSum - origNormalImpulseSum;
 
-					c->constraint.ApplyImpulse(c->bodyA, c->bodyB, deltaLambda);
+					c->constraint.ApplyImpulse(c->bodyA, c->bodyB, c->contactPoints[j].mMatxjN, deltaLambda);
 
 					if (applyFriction) {
+						c->constraint.EvaluateVelocityJacobian(c->bodyA, c->bodyB);
+
 						//float nLambda = c->contactPoints[j]->normalImpulseSum;
 						float nLambda = -gravity.y / pointCount;
 
-						// calculate tangents (Erin Catto's code)
-						glm::vec3 t0, t1;
-
-						if (abs(c->collisionNormal.x) >= 0.57735f)
-							t0 = glm::normalize(glm::vec3(c->collisionNormal.y, -c->collisionNormal.x, 0.0f));
-						else
-							t0 = glm::normalize(glm::vec3(0.0f, c->collisionNormal.z, -c->collisionNormal.y));
-						t1 = glm::cross(c->collisionNormal, t0);
-
 						//==== solve for tangent 0
-						c->constraint.EvaluateJacobian(&c->contactPoints[j], t0);
-
-						effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobianT);
-
-						lambda = -effMass * (c->constraint.jacobian * c->constraint.velocityMatrix + 0.0f);
+						lambda = -c->contactPoints[j].effectiveMassT0 *
+							(c->constraint.JacobianJacobianMult(c->contactPoints[j].jacobianT0, c->constraint.velocityJacobian) + 0.0f);
 
 						float origTangent0ImpulseSum = c->contactPoints[j].tangentImpulseSum1;
 
@@ -250,14 +235,14 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 						deltaLambda = c->contactPoints[j].tangentImpulseSum1 - origTangent0ImpulseSum;
 
-						c->constraint.ApplyImpulse(c->bodyA, c->bodyB, deltaLambda);
+						c->constraint.ApplyImpulse(c->bodyA, c->bodyB, c->contactPoints[j].mMatxjT0, deltaLambda);
 
 						//==== solve for tangent 1
-						c->constraint.EvaluateJacobian(&c->contactPoints[j], t1);
+						c->constraint.EvaluateVelocityJacobian(c->bodyA, c->bodyB);
 
-						effMass = 1.0f / (c->constraint.jacobian * c->constraint.massMatrixInverse * c->constraint.jacobianT);
+						lambda = -c->contactPoints[j].effectiveMassT1 *
+							(c->constraint.JacobianJacobianMult(c->contactPoints[j].jacobianT1, c->constraint.velocityJacobian) + 0.0f);
 
-						lambda = -effMass * (c->constraint.jacobian * c->constraint.velocityMatrix + 0.0f);
 						float origTangent1ImpulseSum = c->contactPoints[j].tangentImpulseSum2;
 
 						c->contactPoints[j].tangentImpulseSum2 += lambda;
@@ -266,17 +251,30 @@ void PhysicsSystem::Update(float _deltaTime) {
 
 						deltaLambda = c->contactPoints[j].tangentImpulseSum2 - origTangent1ImpulseSum;
 
-						c->constraint.ApplyImpulse(c->bodyA, c->bodyB, deltaLambda);
+						c->constraint.ApplyImpulse(c->bodyA, c->bodyB, c->contactPoints[j].mMatxjT1, deltaLambda);
 					}
 				}
 			}
 		}
 	}
 
+	//===== solve joints
+	for (auto j : joints)
+	{
+		glm::vec3 impulse = j->CalculateImpulse();
+		std::cout << impulse.x << " : " << impulse.y << " : " << impulse.z<< std::endl;
+		j->ApplyImpulse(impulse);
+	}
+
 	{
 		//std::cout << "Copy ";
 		//Timer t;
 		// Copy contacts into previous list
+		for (auto c : *colMan->mPrevContacts)
+			delete c;
+
+		colMan->mPrevContacts->clear();
+
 		colMan->mPrevContacts = colMan->mContacts;
 	}
 	

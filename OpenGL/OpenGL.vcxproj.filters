@@ -1341,9 +1341,6 @@
     <ClInclude Include="src\NarrowPhase\SAT.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Resolution\Constraint.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\GameObject\Profiler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1351,6 +1348,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Articulation\Joint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Resolution\PhysicsDataTypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Resolution\Constraint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

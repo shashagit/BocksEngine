@@ -301,7 +301,6 @@
     <ClInclude Include="src\Articulation\Joint.h" />
     <ClInclude Include="src\GameObject\Profiler.h" />
     <ClInclude Include="src\NarrowPhase\Contact.h" />
-    <ClInclude Include="src\Resolution\Constraint.h" />
     <ClInclude Include="src\Broadphase\DynamicAABBTree.h" />
     <ClInclude Include="src\Broadphase\Broadphase.h" />
     <ClInclude Include="src\Broadphase\NSquaredBroadphase.h" />
@@ -325,6 +324,8 @@
     <ClInclude Include="src\Rendering\Shader.h" />
     <ClInclude Include="src\Rendering\Texture.h" />
     <ClInclude Include="src\Components\Transform.h" />
+    <ClInclude Include="src\Resolution\Constraint.h" />
+    <ClInclude Include="src\Resolution\PhysicsDataTypes.h" />
     <ClInclude Include="src\vendor\glm\common.hpp" />
     <ClInclude Include="src\vendor\glm\detail\compute_common.hpp" />
     <ClInclude Include="src\vendor\glm\detail\compute_vector_relational.hpp" />

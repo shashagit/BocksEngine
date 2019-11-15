@@ -19,15 +19,15 @@ class ContactManifold {
 public:
 	std::vector<Contact> contactPoints;
 
-	Body *bodyA, *bodyB;
+	Body* bodyA, * bodyB;
 	Constraint constraint;
-	
+
 	glm::vec3 collisionNormal;
 	glm::vec3 t0, t1;
-	
+
 	ContactManifold() : collisionNormal(0), t0(0), t1(0)
 	{}
-	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+	//EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	void SetupGroundConstraint()
 	{
 		// calculate tangents (Erin Catto's code)
@@ -38,8 +38,18 @@ public:
 		t1 = glm::cross(collisionNormal, t0);
 
 		constraint.CalculateMassMatrixInv(bodyA, bodyB);
+
+		for (auto& c : contactPoints)
+		{
+			constraint.EvaluateJacobian(c.jacobianN, &c, collisionNormal);
+			constraint.CalculateEffectiveMass(c.mMatxjN, c.jacobianN, c.effectiveMassN);
+			constraint.EvaluateJacobian(c.jacobianT0, &c, t0);
+			constraint.CalculateEffectiveMass(c.mMatxjT0, c.jacobianT0, c.effectiveMassT0);
+			constraint.EvaluateJacobian(c.jacobianT1, &c, t1);
+			constraint.CalculateEffectiveMass(c.mMatxjT1, c.jacobianT1, c.effectiveMassT1);
+		}
 	}
-	
+
 	ContactManifold(ContactManifold& cm)
 	{
 		bodyA = cm.bodyA;
@@ -47,8 +57,8 @@ public:
 
 		collisionNormal = cm.collisionNormal;
 		constraint = cm.constraint;
-		
-		for(auto cp : cm.contactPoints)
+
+		for (auto cp : cm.contactPoints)
 		{
 			Contact c(cp);
 			contactPoints.emplace_back(c);

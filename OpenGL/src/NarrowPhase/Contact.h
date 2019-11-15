@@ -1,5 +1,6 @@
 #pragma once
 #include "glm/vec3.hpp"
+#include "../Resolution/PhysicsDataTypes.h"
 
 struct Contact {
 	glm::vec3 point;
@@ -9,6 +10,11 @@ struct Contact {
 	float normalImpulseSum; // normal impulses accumulated
 	float tangentImpulseSum1; // tangent impulses
 	float tangentImpulseSum2;
+
+	Jacobian jacobianN, jacobianT0, jacobianT1;
+
+	float effectiveMassN, effectiveMassT0, effectiveMassT1;
+	VelocityJacobian  mMatxjN, mMatxjT0, mMatxjT1;
 
 	Contact() {
 		point = glm::vec3(0);
