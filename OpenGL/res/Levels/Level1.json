@@ -2,7 +2,7 @@
   
   "Cube": {
     "Transform" : {
-		"Position" : { "x" : 0.0, "y" : 10.0, "z" : 0.0}
+		"Position" : { "x" : 0.0, "y" : 15.0, "z" : 0.0}
 	}
   },
   "Plane": {

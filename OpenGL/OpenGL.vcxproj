@@ -298,6 +298,7 @@
     <None Include="src\vendor\glm\gtx\wrap.inl" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Articulation\Joint.h" />
     <ClInclude Include="src\GameObject\Profiler.h" />
     <ClInclude Include="src\NarrowPhase\Contact.h" />
     <ClInclude Include="src\Resolution\Constraint.h" />

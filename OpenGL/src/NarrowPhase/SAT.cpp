@@ -193,10 +193,10 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 
 		// clip against reference face
 		glm::vec3 pointOnRef = refCollider->mpBody->mRotationMatrix * referenceMeshData.GetPointOnFace(refIndex)
-			+ refCollider->mpBody->mPos;
+			+ refCollider->mpBody->mPos ;
 		
 		if (!clippedPoly.empty())
-			clippedPoly = ClipPolygon(clippedPoly, refFaceNormal, pointOnRef);
+			clippedPoly = ClipPolygon(clippedPoly, refFaceNormal, pointOnRef - 0.005f * refFaceNormal);
 
 		Contact deepest;
 		deepest.penetrationDepth = std::numeric_limits<float>::max();

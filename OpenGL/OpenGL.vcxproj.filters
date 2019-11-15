@@ -1350,5 +1350,8 @@
     <ClInclude Include="src\NarrowPhase\Contact.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Articulation\Joint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
