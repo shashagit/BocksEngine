@@ -334,8 +334,8 @@ int main(void)
 						Body* pBody = static_cast<Body*>(go->GetComponent(BODY));
 						//Body* pBody2 = static_cast<Body*>(go2->GetComponent(BODY));
 						ImGui::PushID(pBody);
-						ImGui::SliderFloat3("Velocity ", &pBody->mVel.x, -10.0f, 10.0f);
-						ImGui::SliderFloat4("Angular Velocity ", &pBody->mAngularVel.x, -1.0f, 1.0f);
+						ImGui::SliderFloat3("Velocity ", &pBody->mVel.x, -5.0f, 5.0f);
+						ImGui::SliderFloat4("Angular Velocity ", &pBody->mAngularVel.x, -6.0f, 6.0f);
 						ImGui::PopID();
 						//ImGui::SliderFloat3("box position 2", &pBody2->mPos.x, -10.0f, 10.0f);
 

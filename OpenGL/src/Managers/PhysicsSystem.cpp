@@ -24,8 +24,8 @@ PhysicsSystem::PhysicsSystem()
 	impulseIterations = 8;
 	applyFriction = false;
 	isResolvingContacts = true;
-	//gravity = glm::vec3(0.0f, -9.8f, 0.0f);
-	gravity = glm::vec3(0.0f);
+	gravity = glm::vec3(0.0f, -9.8f, 0.0f);
+	//gravity = glm::vec3(0.0f);
 }
 
 void PhysicsSystem::Initialize() {
@@ -185,12 +185,13 @@ void PhysicsSystem::Update(float _deltaTime) {
 		}
 	}*/
 
-	if(isResolvingContacts)
-	{
+	
 		//std::cout << "SI solver ";
 		//Timer t;
 		//==== solve constraints
-		for (int i = 0; i < impulseIterations; ++i) {
+	for (int i = 0; i < impulseIterations; ++i) {
+		if (isResolvingContacts)
+		{
 			for (auto c : *colMan->mContacts) {
 
 				//std::cout << c->contactPoints[0]->normalImpulseSum << std::endl;
@@ -256,15 +257,16 @@ void PhysicsSystem::Update(float _deltaTime) {
 				}
 			}
 		}
+
+		//===== solve joints
+		for (auto j : joints)
+		{
+			j->ApplyImpulse();
+		}
+		
 	}
 
-	//===== solve joints
-	for (auto j : joints)
-	{
-		glm::vec3 impulse = j->CalculateImpulse();
-		std::cout << impulse.x << " : " << impulse.y << " : " << impulse.z<< std::endl;
-		j->ApplyImpulse(impulse);
-	}
+	
 
 	{
 		//std::cout << "Copy ";

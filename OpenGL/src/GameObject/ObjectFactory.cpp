@@ -120,29 +120,55 @@ GameObject* ObjectFactory::LoadObject(const char * pFileName)
 	return CreateObject(str, pFileName);
 }
 
-void ObjectFactory::LoadJointLevel()
+void ObjectFactory::LoadBallJointLevel()
 {
 	GameObject* pGO1 = LoadObject("Cube");
 	GameObject* pGO2 = LoadObject("Cube");
 
 	Transform* pTr2 = static_cast<Transform*>(pGO2->GetComponent(TRANSFORM));
-	pTr2->mPos = glm::vec3(1.0f, 0.0f, 0.0f);
+	pTr2->mPos = glm::vec3(1.1f, 0.0f, 0.0f);
 	Body* pB1 = static_cast<Body*>(pGO1->GetComponent(BODY));
 	Body* pB2 = static_cast<Body*>(pGO2->GetComponent(BODY));
 
 	pB1->Initialize();
 	pB2->Initialize();
 
-	BallJoint* j = new BallJoint(pB1, pB2);
+	BallJoint* j = new BallJoint(pB1, pB2, glm::vec3(0.5f, 0.5f, 0.5f ));
 
 	physics->joints.push_back(j);
 
-	physics->isResolvingContacts = false;
+	physics->isResolvingContacts = true;
 
 	GameObject* go = LoadObject("Plane");
 	Body* pB = static_cast<Body*>(go->GetComponent(BODY));
 	Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
-	pTr->mPos = glm::vec3(4.0f, -5.0f, 4.0f);
+	pTr->mPos = glm::vec3(0.0f, -5.0f, 0.0f);
+	pB->Initialize();
+}
+
+void ObjectFactory::LoadJointLevel()
+{
+	GameObject* pGO1 = LoadObject("Cube");
+	GameObject* pGO2 = LoadObject("Cube");
+
+	Transform* pTr2 = static_cast<Transform*>(pGO2->GetComponent(TRANSFORM));
+	pTr2->mPos = glm::vec3(1.1f, 0.0f, 0.0f);
+	Body* pB1 = static_cast<Body*>(pGO1->GetComponent(BODY));
+	Body* pB2 = static_cast<Body*>(pGO2->GetComponent(BODY));
+
+	pB1->Initialize();
+	pB2->Initialize();
+
+	HingeJoint* j = new HingeJoint(pB1, pB2, glm::vec3(0.55f, 0.55f, 0.55f), glm::vec3(0.55f, 0.55f, -0.55f));
+
+	physics->joints.push_back(j);
+
+	physics->isResolvingContacts = true;
+
+	GameObject* go = LoadObject("Plane");
+	Body* pB = static_cast<Body*>(go->GetComponent(BODY));
+	Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
+	pTr->mPos = glm::vec3(0.0f, -5.0f, 0.0f);
 	pB->Initialize();
 }
 
