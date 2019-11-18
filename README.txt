@@ -1,4 +1,4 @@
-README:
+This engine was created in the process of learning to write a robust rigidbody simulation while taking the CS 550 course at DigiPen. It was later heavily improved upon and extended to include Joint constraints as well.
 
 INSTRUCTIONS:
 Move Camera using WASD
