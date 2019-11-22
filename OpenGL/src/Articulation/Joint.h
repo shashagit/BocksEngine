@@ -11,49 +11,34 @@ public:
 	{
 		parent = a;
 		child = b;
-
-		anchorParent = glm::vec3(0.5f, 0.5f, 0.5f); // front top right
-		anchorChild = glm::vec3(-0.5f, 0.5f, 0.5f); // front top left
 	}
 
 	virtual ~Joint() {}
 
 	Body* parent;
 	Body* child;
-
-	// these points are in the local space of the body
-	glm::vec3 anchorParent, anchorChild;
 	
-	virtual glm::vec3 CalculateImpulse() { return glm::vec3(0); }
-
-	void ApplyImpulse(glm::vec3 impulse)
-	{
-		impulse *= 0.8;
-
-		parent->mVel += impulse * parent->mInvMass;
-		child->mVel += -impulse * child->mInvMass;
-
-		glm::vec3 rA = parent->mRotationMatrix * anchorParent;
-		glm::vec3 rB = child->mRotationMatrix * anchorChild;
-
-		parent->mAngularVel += parent->mInertiaWorldInverse * (glm::cross(rA, impulse));
-		child->mAngularVel += child->mInertiaWorldInverse * (glm::cross(rB, -impulse));
-	}
+	virtual void ApplyImpulse() {}
 };
 
 class BallJoint : public Joint
 {
 public:
+	// these points are in the local space of the body
+	glm::vec3 anchorParent, anchorChild;
 	Constraint ballJoint;
 	
-	BallJoint(Body* a, Body* b) : Joint(a, b)
+	BallJoint(Body* a, Body* b, glm::vec3 anchor) : Joint(a, b)
 	{
-		ballJoint.CalculateMassMatrixInv(parent, child);
+		
+		anchorParent = glm::transpose(parent->mRotationMatrix) * (anchor - parent->mPos);
+		anchorChild = glm::transpose(child->mRotationMatrix) * (anchor - child->mPos);
 	}
 
-	glm::vec3 CalculateImpulse() override
+	void ApplyImpulse() override
 	{
-		ballJoint.EvaluateVelocityJacobian(parent, child);
+		ballJoint.CalculateMassMatrixInv(parent, child);
+		//ballJoint.EvaluateVelocityJacobian(parent, child);
 		
 		glm::vec3 rA = parent->mRotationMatrix * anchorParent;
 		glm::vec3 rB = child->mRotationMatrix * anchorChild;
@@ -61,17 +46,43 @@ public:
 		glm::mat3 skewRa = glm::matrixCross3(rA);
 		glm::mat3 skewRb = glm::matrixCross3(rB);
 
-		// Calculate Relative Velocity
-		glm::vec3 relativeVelocity = parent->mVel - skewRa * parent->mAngularVel -
-			child->mVel + skewRb * child->mAngularVel;
+		// Calculate Relative Velocity : JV
+		glm::vec3 relativeVelocity = parent->mVel - (skewRa * parent->mAngularVel) -
+			child->mVel + (skewRb * child->mAngularVel);
+		//std::cout << "relativeVelocity : " << relativeVelocity.x << " : " << relativeVelocity.y << " : " << relativeVelocity.z << std::endl;
+
+		glm::vec3 globalAnchorParent = parent->mRotationMatrix * anchorParent + parent->mPos;
+		glm::vec3 globalAnchorChild = child->mRotationMatrix * anchorChild + child->mPos;
+
+		glm::vec3 posError = globalAnchorChild - globalAnchorParent;
 		
-		std::cout << "relativeVelocity : " << relativeVelocity.x << " : " << relativeVelocity.y << " : " << relativeVelocity.z << std::endl;
+		glm::vec3 bias = posError * (60.0f) * 0.2f;
 
-		glm::mat3 K = ballJoint.massMatrix.massB - skewRb * ballJoint.massMatrix.inertiaB * skewRb +
-			ballJoint.massMatrix.massA - skewRa * ballJoint.massMatrix.inertiaA * skewRa;
+		glm::mat3 K = ballJoint.massMatrix.massA - (skewRa * ballJoint.massMatrix.inertiaA * skewRa) +
+			ballJoint.massMatrix.massB - (skewRb * ballJoint.massMatrix.inertiaB * skewRb);
 
-		glm::mat3 Kinv = glm::inverse(K);
+		glm::vec3 impulse = glm::inverse(K) * (bias - relativeVelocity);
+	
+		parent->mVel += impulse * parent->mInvMass;
+		parent->mAngularVel += parent->mInertiaWorldInverse * (glm::cross(parent->mRotationMatrix * anchorParent, impulse));
 
-		return Kinv * -relativeVelocity;
+		child->mVel -= impulse * child->mInvMass;
+		child->mAngularVel -= child->mInertiaWorldInverse * (glm::cross(child->mRotationMatrix * anchorChild, impulse));
+	}
+};
+
+class HingeJoint : public Joint
+{
+public:
+	BallJoint bj1, bj2;
+
+	HingeJoint(Body* a, Body* b, glm::vec3 anchor1, glm::vec3 anchor2)
+		: Joint(a, b), bj1(BallJoint(a,b, anchor1)), bj2(BallJoint(a,b,anchor2))
+	{}
+
+	void ApplyImpulse() override
+	{
+		bj1.ApplyImpulse();
+		bj2.ApplyImpulse();
 	}
 };

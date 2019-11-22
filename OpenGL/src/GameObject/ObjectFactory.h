@@ -14,6 +14,7 @@ public:
 	GameObject* CreateObject(const char * str, const char * pFileName);
 	GameObject* LoadObject(const char* pFileName);
 
+	void LoadBallJointLevel();
 	void LoadJointLevel();
 
 	void LoadBigLevel();
