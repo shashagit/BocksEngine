@@ -24,6 +24,7 @@ PhysicsSystem::PhysicsSystem()
 	impulseIterations = 8;
 	applyFriction = false;
 	isResolvingContacts = true;
+	isResolvingJoints = false;
 	//gravity = glm::vec3(0.0f, -9.8f, 0.0f);
 	gravity = glm::vec3(0.0f);
 }
@@ -259,11 +260,14 @@ void PhysicsSystem::Update(float _deltaTime) {
 	}
 
 	//===== solve joints
-	for (auto j : joints)
+	if (isResolvingJoints)
 	{
-		glm::vec3 impulse = j->CalculateImpulse();
-		std::cout << impulse.x << " : " << impulse.y << " : " << impulse.z<< std::endl;
-		j->ApplyImpulse(impulse);
+		for (auto j : joints)
+		{
+			glm::vec3 impulse = j->CalculateImpulse();
+			std::cout << "Impulse : " << impulse.x << " : " << impulse.y << " : " << impulse.z << std::endl;
+			j->ApplyImpulse(impulse);
+		}
 	}
 
 	{

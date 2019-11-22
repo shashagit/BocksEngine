@@ -138,6 +138,7 @@ void ObjectFactory::LoadJointLevel()
 	physics->joints.push_back(j);
 
 	physics->isResolvingContacts = false;
+	physics->isResolvingJoints = true;
 
 	GameObject* go = LoadObject("Plane");
 	Body* pB = static_cast<Body*>(go->GetComponent(BODY));

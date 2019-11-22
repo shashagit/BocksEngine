@@ -12,8 +12,8 @@ public:
 		parent = a;
 		child = b;
 
-		anchorParent = glm::vec3(1.0f, 1.0f, 1.0f); // front top right
-		anchorChild = glm::vec3(-1.0f, 1.0f, 1.0f); // front top left
+		anchorParent = glm::vec3(0.5f, 0.5f, 0.5f); // front top right
+		anchorChild = glm::vec3(-0.5f, 0.5f, 0.5f); // front top left
 	}
 
 	virtual ~Joint() {}
@@ -28,11 +28,16 @@ public:
 
 	void ApplyImpulse(glm::vec3 impulse)
 	{
+		impulse *= 0.8;
+
 		parent->mVel += impulse * parent->mInvMass;
 		child->mVel += -impulse * child->mInvMass;
 
-		parent->mAngularVel += parent->mInertiaWorldInverse * (glm::cross(anchorParent - parent->mPos, impulse));
-		child->mAngularVel += child->mInertiaWorldInverse * (glm::cross(anchorChild - child->mPos, -impulse));
+		glm::vec3 rA = parent->mRotationMatrix * anchorParent;
+		glm::vec3 rB = child->mRotationMatrix * anchorChild;
+
+		parent->mAngularVel += parent->mInertiaWorldInverse * (glm::cross(rA, impulse));
+		child->mAngularVel += child->mInertiaWorldInverse * (glm::cross(rB, -impulse));
 	}
 };
 
@@ -50,19 +55,20 @@ public:
 	{
 		ballJoint.EvaluateVelocityJacobian(parent, child);
 		
-		glm::vec3 rA = anchorParent * parent->mRotationMatrix + parent->mPos - parent->mPos;
-		glm::vec3 rB = anchorChild * child->mRotationMatrix + child->mPos - child->mPos;
-
+		glm::vec3 rA = parent->mRotationMatrix * anchorParent;
+		glm::vec3 rB = child->mRotationMatrix * anchorChild;
 
 		glm::mat3 skewRa = glm::matrixCross3(rA);
 		glm::mat3 skewRb = glm::matrixCross3(rB);
 
-		// Calculate Relative Velocity : JV
+		// Calculate Relative Velocity
 		glm::vec3 relativeVelocity = parent->mVel - skewRa * parent->mAngularVel -
 			child->mVel + skewRb * child->mAngularVel;
 		
-		glm::mat3 K = ballJoint.massMatrix.massA - skewRa * ballJoint.massMatrix.inertiaA * skewRa +
-			ballJoint.massMatrix.massB - skewRb * ballJoint.massMatrix.inertiaB * skewRb;
+		std::cout << "relativeVelocity : " << relativeVelocity.x << " : " << relativeVelocity.y << " : " << relativeVelocity.z << std::endl;
+
+		glm::mat3 K = ballJoint.massMatrix.massB - skewRb * ballJoint.massMatrix.inertiaB * skewRb +
+			ballJoint.massMatrix.massA - skewRa * ballJoint.massMatrix.inertiaA * skewRa;
 
 		glm::mat3 Kinv = glm::inverse(K);
 
