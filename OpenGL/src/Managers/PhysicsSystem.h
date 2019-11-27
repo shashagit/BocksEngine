@@ -30,6 +30,8 @@ public:
 	int impulseIterations;
 
 	bool isResolvingContacts;
+	bool isResolvingJoints;
+	
 	bool applyFriction;
 	glm::vec3 gravity;
 	float fixedDeltaTime;

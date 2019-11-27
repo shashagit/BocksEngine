@@ -361,6 +361,8 @@ int main(void)
 				ImGui::Checkbox("Debug Draw : Contacts", &isDebugVectors);
 				ImGui::Checkbox("Debug Draw : Wireframe", &isDebugWireframe);
 				ImGui::Checkbox("Apply Friction Impulse", &physics->applyFriction);
+				ImGui::Checkbox("Resolve Contacts", &physics->isResolvingContacts);
+				ImGui::Checkbox("Resolve Joints", &physics->isResolvingJoints);
 				ImGui::SliderInt("Solver Iterations : ", &physics->impulseIterations, 1, 15);
 
 				if (ImGui::Button("Load 1 box")) {

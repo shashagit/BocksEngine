@@ -24,8 +24,8 @@ PhysicsSystem::PhysicsSystem()
 	impulseIterations = 8;
 	applyFriction = false;
 	isResolvingContacts = true;
+	isResolvingJoints = false;
 	gravity = glm::vec3(0.0f, -9.8f, 0.0f);
-	//gravity = glm::vec3(0.0f);
 }
 
 void PhysicsSystem::Initialize() {
@@ -44,7 +44,8 @@ void PhysicsSystem::Initialize() {
 
 
 
-void PhysicsSystem::Update(float _deltaTime) {
+void PhysicsSystem::Update(float _deltaTime)
+{
 
 	fixedDeltaTime = _deltaTime;
 
@@ -80,14 +81,14 @@ void PhysicsSystem::Update(float _deltaTime) {
 		// run Narrow phase on all intersection pairs
 		for (auto& pair : pairs) {
 			// hack to make the ground not collide with itself
-			
+
 				// perform the SAT intersection test
-				if (sat.TestIntersection3D(pair.first, pair.second)) {
-					// to color the colliding pair
-					pair.first->isColliding = true;
-					pair.second->isColliding = true;
-				}
-			
+			if (sat.TestIntersection3D(pair.first, pair.second)) {
+				// to color the colliding pair
+				pair.first->isColliding = true;
+				pair.second->isColliding = true;
+			}
+
 		}
 	}
 
@@ -125,7 +126,7 @@ void PhysicsSystem::Update(float _deltaTime) {
 	float baumgarte = 0.1f;
 	const float bias = 1.0f;
 	const float proximityEpsilon = 0.00001f;
-	
+
 	bool isWarmStarting = true;
 	//==== warm starting
 	{
@@ -185,10 +186,10 @@ void PhysicsSystem::Update(float _deltaTime) {
 		}
 	}*/
 
-	
-		//std::cout << "SI solver ";
-		//Timer t;
-		//==== solve constraints
+
+	//std::cout << "SI solver ";
+	//Timer t;
+	//==== solve constraints
 	for (int i = 0; i < impulseIterations; ++i) {
 		if (isResolvingContacts)
 		{
@@ -259,51 +260,53 @@ void PhysicsSystem::Update(float _deltaTime) {
 		}
 
 		//===== solve joints
-		for (auto j : joints)
+		if (isResolvingJoints)
 		{
-			j->ApplyImpulse();
+			for (auto j : joints)
+			{
+				j->ApplyImpulse();
+			}
 		}
-		
+
 	}
 
-	
-
-	{
-		//std::cout << "Copy ";
-		//Timer t;
-		// Copy contacts into previous list
-		for (auto c : *colMan->mPrevContacts)
-			delete c;
-
-		colMan->mPrevContacts->clear();
-
-		colMan->mPrevContacts = colMan->mContacts;
-	}
-	
-	{
-		//std::cout << "Velocity integration ";
-		//Timer t;
-		//==== integrate velocity and angular velocity
-		for (auto go : gpGoManager->mGameObjects)
 		{
-			Body* pBody = static_cast<Body*>(go->GetComponent(BODY));
+			//std::cout << "Copy ";
+			//Timer t;
+			// Copy contacts into previous list
+			for (auto c : *colMan->mPrevContacts)
+				delete c;
 
-			// save current position
-			pBody->mPrevPos = pBody->mPos;
+			colMan->mPrevContacts->clear();
 
-			// integrate the position
-			pBody->mPos += pBody->mVel * _deltaTime;
-			// integrate the orientation
-			glm::fquat newQuat = 0.5f * (pBody->mAngularVel) * pBody->mQuaternion * _deltaTime;
-			pBody->mQuaternion *= newQuat;
-
-			// using this instead causes weird behaviour
-			//pBody->mQuaternion += 0.5f * glm::fquat(pBody->mAngularVel) *pBody->mQuaternion * _deltaTime;
+			colMan->mPrevContacts = colMan->mContacts;
 		}
-	}
 
-	//std::cout << "===================" << std::endl;
+		{
+			//std::cout << "Velocity integration ";
+			//Timer t;
+			//==== integrate velocity and angular velocity
+			for (auto go : gpGoManager->mGameObjects)
+			{
+				Body* pBody = static_cast<Body*>(go->GetComponent(BODY));
+
+				// save current position
+				pBody->mPrevPos = pBody->mPos;
+
+				// integrate the position
+				pBody->mPos += pBody->mVel * _deltaTime;
+				// integrate the orientation
+				glm::fquat newQuat = 0.5f * (pBody->mAngularVel) * pBody->mQuaternion * _deltaTime;
+				pBody->mQuaternion *= newQuat;
+
+				// using this instead causes weird behaviour
+				//pBody->mQuaternion += 0.5f * glm::fquat(pBody->mAngularVel) *pBody->mQuaternion * _deltaTime;
+			}
+		}
+
+		//std::cout << "===================" << std::endl;
 }
+
 
 // Interpolates the state of bodies to accurately render them
 void PhysicsSystem::InterpolateState(float blendingFactor)
