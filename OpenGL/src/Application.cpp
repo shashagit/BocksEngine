@@ -384,6 +384,12 @@ int main(void)
 				if (ImGui::Button("Load Ball Joint")) {
 					physics->applyFriction = true;
 					gpGoManager->mGameObjects.clear();
+					objFactory->LoadBallJointLevel();
+					physics->Initialize();
+				}
+				if (ImGui::Button("Load Hinge Joint")) {
+					physics->applyFriction = true;
+					gpGoManager->mGameObjects.clear();
 					objFactory->LoadJointLevel();
 					physics->Initialize();
 				}
