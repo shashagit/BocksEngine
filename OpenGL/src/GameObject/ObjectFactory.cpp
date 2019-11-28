@@ -174,6 +174,44 @@ void ObjectFactory::LoadJointLevel()
 	pB->Initialize();
 }
 
+void ObjectFactory::LoadBridgeLevel()
+{
+	GameObject* pGO1 = LoadObject("Cube");
+	Transform* pTr1 = static_cast<Transform*>(pGO1->GetComponent(TRANSFORM));
+	pTr1->mPos = glm::vec3(0.0f, 5.0f, 0.0f);
+	Body* pB1 = static_cast<Body*>(pGO1->GetComponent(BODY));
+	pB1->mMass = std::numeric_limits<float>::infinity();
+	pB1->Initialize();
+
+	for (int i = 1; i < 15; ++i)
+	{
+		GameObject* pGO2 = LoadObject("Cube");
+
+		Transform* pTr2 = static_cast<Transform*>(pGO2->GetComponent(TRANSFORM));
+		pTr2->mPos = glm::vec3(1.1f * i, 5.0f, 0.0f);
+		Body* pB2 = static_cast<Body*>(pGO2->GetComponent(BODY));
+
+		pB2->Initialize();
+
+		HingeJoint* j = new HingeJoint(pB1, pB2, glm::vec3((2*i-1)*0.55f, 5.55f, 0.55f), glm::vec3((2*i-1)*0.55f, 5.55f, -0.55f));
+
+		physics->joints.push_back(j);
+		
+		pB1 = pB2;
+	}
+	physics->isResolvingContacts = true;
+	physics->isResolvingJoints = true;
+
+	pB1->mMass = std::numeric_limits<float>::infinity();
+	pB1->Initialize();
+	
+	GameObject* go = LoadObject("Plane");
+	Body* pB = static_cast<Body*>(go->GetComponent(BODY));
+	Transform* pTr = static_cast<Transform*>(go->GetComponent(TRANSFORM));
+	pTr->mPos = glm::vec3(0.0f, -5.0f, 0.0f);
+	pB->Initialize();
+}
+
 GameObject* ObjectFactory::CreateObject(const char * str, const char * pFileName) {
 	GameObject* pNewGameObject = nullptr;
 	Document document;

@@ -17,6 +17,8 @@ public:
 
 	Body* parent;
 	Body* child;
+
+	glm::vec3 impulseSum;
 	
 	virtual void ApplyImpulse() {}
 };
@@ -27,9 +29,29 @@ public:
 	// these points are in the local space of the body
 	glm::vec3 anchorParent, anchorChild;
 	Constraint ballJoint;
+	float softness, biasFactor;
 	
 	BallJoint(Body* a, Body* b, glm::vec3 anchor) : Joint(a, b)
 	{
+
+		// Tuning
+		float frequencyHz = 10.0f;
+		float dampingRatio = 0.7f;
+		float mass = 10.0f;
+		float timeStep = 1.0f / 60.0f;
+		
+		// frequency in radians
+		float omega = 2.0f * 3.14159f * frequencyHz;
+
+		// damping coefficient
+		float d = 2.0f * mass * dampingRatio * omega;
+
+		// spring stiffness
+		float k = mass * omega * omega;
+
+		// magic formulas
+		softness = 1.0f / (d + timeStep * k);
+		biasFactor = timeStep * k / (d + timeStep * k);
 		
 		anchorParent = glm::transpose(parent->mRotationMatrix) * (anchor - parent->mPos);
 		anchorChild = glm::transpose(child->mRotationMatrix) * (anchor - child->mPos);
@@ -56,18 +78,20 @@ public:
 
 		glm::vec3 posError = globalAnchorChild - globalAnchorParent;
 		
-		glm::vec3 bias = posError * (60.0f) * 0.2f;
+		glm::vec3 bias = posError * (60.0f) * biasFactor;
 
 		glm::mat3 K = ballJoint.massMatrix.massA - (skewRa * ballJoint.massMatrix.inertiaA * skewRa) +
 			ballJoint.massMatrix.massB - (skewRb * ballJoint.massMatrix.inertiaB * skewRb);
 
-		glm::vec3 impulse = glm::inverse(K) * (bias - relativeVelocity);
+		glm::vec3 impulse = glm::inverse(K) * (bias - relativeVelocity - softness * impulseSum);
 	
 		parent->mVel += impulse * parent->mInvMass;
 		parent->mAngularVel += parent->mInertiaWorldInverse * (glm::cross(parent->mRotationMatrix * anchorParent, impulse));
 
 		child->mVel -= impulse * child->mInvMass;
 		child->mAngularVel -= child->mInertiaWorldInverse * (glm::cross(child->mRotationMatrix * anchorChild, impulse));
+
+		impulseSum += impulse;
 	}
 };
 

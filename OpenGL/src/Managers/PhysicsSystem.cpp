@@ -116,6 +116,10 @@ void PhysicsSystem::Update(float _deltaTime)
 			// set forces to zero
 			pBody->mTotalForce = glm::vec3(0);
 			pBody->mTotalTorque = glm::vec3(0);
+
+			// damping velocities
+			pBody->mAngularVel *= 1.0f / (1.0f + _deltaTime * 0.05f);
+			pBody->mVel *= 1.0f / (1.0f + _deltaTime * 0.005f);
 		}
 	}
 
@@ -173,6 +177,11 @@ void PhysicsSystem::Update(float _deltaTime)
 		}
 	}
 
+	for (auto j : joints)
+	{
+		j->impulseSum = glm::vec3(0.0f);
+	}
+	
 	/*if (!colMan->mContacts->empty()) {
 		for (auto c : *colMan->mContacts) {
 		ImGui::Begin("Contact Manifold");

@@ -395,7 +395,12 @@ int main(void)
 					objFactory->LoadJointLevel();
 					physics->Initialize();
 				}
-				
+				if (ImGui::Button("Load Bridge Level")) {
+					physics->applyFriction = true;
+					gpGoManager->mGameObjects.clear();
+					objFactory->LoadBridgeLevel();
+					physics->Initialize();
+				}
 				ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 			}
 

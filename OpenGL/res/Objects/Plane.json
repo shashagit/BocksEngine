@@ -17,7 +17,7 @@
         }
     },
 	"Body" : {
-		"Mass" : 2.0
+		"Mass" : 1e39
 	},
 	"Collider" : {
 		

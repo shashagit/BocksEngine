@@ -38,18 +38,6 @@ void Body::Serialize(GenericObject<false, Value::ValueType> d)
 	if(d.HasMember("Mass"))
 		mMass = d["Mass"].GetFloat();
 
-	if (mMass != 0.0f) {
-		mInvMass = 1.0f / mMass;
-	}
-	else {
-		mInvMass = 0.0f;
-	}
-
-	if (mMass == 2.0f) {
-		mInvMass = 0.0f;
-		mMass = std::numeric_limits<float>::max();
-	}
-
 	if (d.HasMember("Velocity")) {
 		mVel.x = d["Velocity"]["x"].GetFloat();
 		mVel.y = d["Velocity"]["y"].GetFloat();
@@ -70,23 +58,26 @@ void Body::Initialize()
 		mPos = pTr->mPos;
 	}
 
+	mQuaternion = glm::toQuat(pTr->mRotate);
 	//mAngularVel.x = 0.1f;
 	//mAngularVel.y = 0.1f;
 	glm::mat3 inertia = glm::mat3(0.0f);
-	if (mMass < 1.9f) {
+	if (mMass != std::numeric_limits<float>::infinity()) {
 		// setup body inertia tensor (only for AABB)
 		inertia[0][0] = mMass / 12.0f * (pTr->mScale.y * pTr->mScale.y + pTr->mScale.z * pTr->mScale.z);
 		inertia[1][1] = mMass / 12.0f * (pTr->mScale.x * pTr->mScale.x + pTr->mScale.z * pTr->mScale.z);
 		inertia[2][2] = mMass / 12.0f * (pTr->mScale.y * pTr->mScale.y + pTr->mScale.x * pTr->mScale.x);
+		mInertiaBodyInverse = glm::inverse(inertia);
+
+		mInvMass = 1.0f / mMass;
 	} else
 	{
-		inertia[0][0] = inertia[1][1] = inertia[2][2] = mMass;
+		mMass = std::numeric_limits<float>::infinity();
+		mInvMass = 0.0f;
 		mInertiaBodyInverse = glm::mat3(0.0f);
 		return;
 	}
 
-	mInertiaBodyInverse = glm::inverse(inertia);
 
-	mQuaternion = glm::toQuat(pTr->mRotate);
 }
 
