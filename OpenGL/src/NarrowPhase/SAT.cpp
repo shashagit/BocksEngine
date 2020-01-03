@@ -71,8 +71,8 @@ float LineLineIntersect(
 	return glm::distance(pa, pb);
 }
 
-// from Dirk Gregorius' Post on GameDev.net
-std::vector<glm::vec3> ClipPolygon(const std::vector<glm::vec3>& polygon, glm::vec3 normal, glm::vec3 pointOnPlane) {
+// from Orange Book!! To take into account the thickness of the plane
+std::vector<glm::vec3> ClipPolygon(const std::vector<glm::vec3>& polygon, glm::vec3 normal, glm::vec3 pointOnPlane, float thickness = 0.0f) {
 	std::vector<glm::vec3> clipped;
 
 	glm::vec3 ver1 = polygon.back();
@@ -82,24 +82,36 @@ std::vector<glm::vec3> ClipPolygon(const std::vector<glm::vec3>& polygon, glm::v
 	for (int i = 0; i < polygon.size(); ++i) {
 		glm::vec3 ver2 = polygon[i];
 		float dist2 = glm::dot(normal, ver2 - pointOnPlane);
-
-		if (dist1 <= 0.0f and dist2 <= 0.0f) {
-			clipped.push_back(ver2);
-		}
-		else if (dist1 <= 0.0f and dist2 > 0.0f) {
+		if (dist1 < 0.0f - thickness && dist2 > 0.0f)
+		{
 			float frac = dist1 / (dist1 - dist2);
 			glm::vec3 intersectionPoint = ver1 + frac * (ver2 - ver1);
-
 			clipped.push_back(intersectionPoint);
 		}
-		else if (dist2 <= 0.0f and dist1 > 0.0f) {
+		else if (dist1 < 0.0f - thickness && ((dist2 <= 0.0f) && (dist2 >= 0.0f - thickness)))
+		{
+			clipped.push_back(ver2);
+		}
+		else if (dist1 > 0.0f && dist2 < 0.0f - thickness)
+		{
 			float frac = dist1 / (dist1 - dist2);
 			glm::vec3 intersectionPoint = ver1 + frac * (ver2 - ver1);
-
 			clipped.push_back(intersectionPoint);
 			clipped.push_back(ver2);
 		}
-
+		else if (((dist1 <= 0.0f) && (dist1 >= 0.0f - thickness)) && dist2 < 0.0f - thickness)
+		{
+			clipped.push_back(ver1);
+			clipped.push_back(ver2);
+		}
+		else if (dist1 < 0.0f - thickness && dist2 < 0.0f - thickness)
+		{
+			clipped.push_back(ver2);
+		}
+		else if (((dist1 <= 0.0f) && (dist1 >= 0.0f - thickness)) && ((dist2 <= 0.0f) && (dist2 >= 0.0f - thickness)))
+		{
+			clipped.push_back(ver2);
+		}
 		ver1 = ver2;
 		dist1 = dist2;
 	}
@@ -196,7 +208,7 @@ bool SAT::TestIntersection3D(Collider* col1, Collider* col2) {
 			+ refCollider->mpBody->mPos ;
 		
 		if (!clippedPoly.empty())
-			clippedPoly = ClipPolygon(clippedPoly, refFaceNormal, pointOnRef);
+			clippedPoly = ClipPolygon(clippedPoly, refFaceNormal, pointOnRef, 0.005f);
 
 		Contact deepest;
 		deepest.penetrationDepth = std::numeric_limits<float>::max();

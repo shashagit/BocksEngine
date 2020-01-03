@@ -19,6 +19,9 @@ extern CollisionManager* colMan;
 extern FrameRateController* frc;
 extern GameObjectManager* gpGoManager;
 
+float angularDamp = 0.05f;
+float linearDamp = 0.005f;
+
 PhysicsSystem::PhysicsSystem()
 {
 	impulseIterations = 8;
@@ -31,15 +34,14 @@ PhysicsSystem::PhysicsSystem()
 void PhysicsSystem::Initialize() {
 	dAABBTree.DeleteTree();
 	nSquared.RemoveColliders();
-
+	
 	for (auto go : gpGoManager->mGameObjects)
 	{
 		Collider *pCol = static_cast<Collider*>(go->GetComponent(COLLIDER));
 		dAABBTree.AddCollider(pCol);
 
 		//nSquared.AddCollider(pCol);
-	}
-	
+	}	
 }
 
 
@@ -118,8 +120,8 @@ void PhysicsSystem::Update(float _deltaTime)
 			pBody->mTotalTorque = glm::vec3(0);
 
 			// damping velocities
-			pBody->mAngularVel *= 1.0f / (1.0f + _deltaTime * 0.05f);
-			pBody->mVel *= 1.0f / (1.0f + _deltaTime * 0.005f);
+			pBody->mAngularVel *= 1.0f / (1.0f + _deltaTime * angularDamp);
+			pBody->mVel *= 1.0f / (1.0f + _deltaTime * linearDamp);
 		}
 	}
 
@@ -340,6 +342,11 @@ void PhysicsSystem::InterpolateState(float blendingFactor)
 
 		pTr->mRotate = glm::toMat4(pBody->mQuaternion);
 	}
+
+	ImGui::Begin("Damping Values");
+	ImGui::InputFloat("Angular Damp ", &angularDamp);
+	ImGui::InputFloat("Linear Damp ", &linearDamp);
+	ImGui::End();
 }
 
 PhysicsSystem::~PhysicsSystem()

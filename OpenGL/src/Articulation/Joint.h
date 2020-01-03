@@ -23,6 +23,7 @@ public:
 	virtual void ApplyImpulse() {}
 };
 
+// A Ball and Socket Joint
 class BallJoint : public Joint
 {
 public:
@@ -35,9 +36,9 @@ public:
 	{
 
 		// Tuning
-		float frequencyHz = 10.0f;
+		float frequencyHz = 200.0f;
 		float dampingRatio = 0.7f;
-		float mass = 10.0f;
+		float mass = 50.0f;
 		float timeStep = 1.0f / 60.0f;
 		
 		// frequency in radians
@@ -95,6 +96,7 @@ public:
 	}
 };
 
+// Simplified the hinge joint as a combination of 2 ball joints
 class HingeJoint : public Joint
 {
 public:
@@ -108,5 +110,47 @@ public:
 	{
 		bj1.ApplyImpulse();
 		bj2.ApplyImpulse();
+	}
+};
+
+class RopeJoint : public Joint
+{
+	float distance;
+	Constraint ropeJoint;
+public:
+	RopeJoint(Body* a, Body* b, float ropeLength) : Joint(a, b), distance((ropeLength))
+	{
+	}
+	void ApplyImpulse() override
+	{
+		glm::vec3 d = child->mPos - parent->mPos;
+
+
+		ropeJoint.CalculateMassMatrixInv(parent, child);
+
+		// Calculate Relative Velocity : JV
+		glm::vec3 relativeVelocity = child->mVel - parent->mVel;
+
+		// if this relative velocity makes distance lesser next frame then don't
+		// need to apply any impulse
+		if(glm::length(relativeVelocity * 0.016f + d) < distance)
+		{
+			return;
+		}
+
+		float diff = glm::length(d) - distance;
+		// scale the relative velocity by the current distance between the objects
+		relativeVelocity *=glm::abs(d);
+		
+		glm::mat3 K = ropeJoint.massMatrix.massA  +	ropeJoint.massMatrix.massB;
+		glm::vec3 bias = -diff * glm::normalize(d) * 0.016f *0.2f;
+		glm::vec3 impulse = glm::inverse(K) * ( bias - relativeVelocity);
+
+		parent->mVel -= impulse * parent->mInvMass;
+		child->mVel += impulse * child->mInvMass;
+
+		// nullify all angular velocities
+		parent->mAngularVel = glm::vec3(0.0f);
+		child->mAngularVel = glm::vec3(0.0f);
 	}
 };

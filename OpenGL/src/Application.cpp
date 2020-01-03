@@ -68,7 +68,7 @@ int main(void)
 	SCR_HEIGHT = 720;// (float)mode->height;
 	// change first NULL argument to window to run in full screen mode
 	// BEWARE:: if an exception is thrown the window cannot be closed or minimized
-	window = glfwCreateWindow((int)SCR_WIDTH, (int)SCR_HEIGHT, "FlyEngine", NULL, NULL);
+	window = glfwCreateWindow((int)SCR_WIDTH, (int)SCR_HEIGHT, "BocksEngine", NULL, NULL);
 
 	/* Create a windowed mode window and its OpenGL context */
 	//window = glfwCreateWindow(960, 540, "Hello World", NULL, NULL);
@@ -252,6 +252,7 @@ int main(void)
 						}
 					}
 				}
+
 				if (isDrawColliders) {
 					for (auto go : gpGoManager->mGameObjects)
 					{
@@ -317,6 +318,8 @@ int main(void)
 			}
 			
 			// iMGui stuff goes here
+			//ImGui::ShowDemoWindow();
+			
 			{
 				// UI Instructions
 				ImGui::Text("INSTRUCTIONS:");
@@ -387,6 +390,12 @@ int main(void)
 					physics->applyFriction = true;
 					gpGoManager->mGameObjects.clear();
 					objFactory->LoadBallJointLevel();
+					physics->Initialize();
+				}
+				if (ImGui::Button("Load Rope Joint")) {
+					physics->applyFriction = true;
+					gpGoManager->mGameObjects.clear();
+					objFactory->LoadRopeJointLevel();
 					physics->Initialize();
 				}
 				if (ImGui::Button("Load Hinge Joint")) {

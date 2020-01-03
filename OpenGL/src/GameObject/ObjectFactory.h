@@ -16,6 +16,7 @@ public:
 
 	void LoadBallJointLevel();
 	void LoadJointLevel();
+	void LoadRopeJointLevel();
 	void LoadBridgeLevel();
 	void LoadBigLevel();
 
